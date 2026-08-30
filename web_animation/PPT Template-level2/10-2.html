@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统功能演示 · 情景式教学平台</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root {
+    --dark-bg: #050508;
+    --dark-secondary: #0A0A12;
+    --dark-tertiary: #10101A;
+    --accent-blue: #0080FF;
+    --accent-cyan: #00F0FF;
+    --accent-purple: #B829F7;
+    --accent-pink: #FF2D8F;
+    --accent-amber: #FFB800;
+    --accent-green: #00FF9D;
+    --text-primary: #F0F0F5;
+    --text-secondary: #8890A8;
+    --text-muted: #4A5068;
+    --glow-blue: rgba(0, 128, 255, 0.4);
+    --glow-cyan: rgba(0, 240, 255, 0.4);
+    --glow-purple: rgba(184, 41, 247, 0.4);
+    --glow-pink: rgba(255, 45, 143, 0.35);
+    --glow-green: rgba(0, 255, 157, 0.35);
+}
+
+body{font-family:'Noto Sans SC',sans-serif;background:var(--dark-bg);color:var(--text-primary);overflow:hidden;width:100vw;height:100vh}
+
+/* ===== CANVAS BACKGROUND ===== */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* ===== SCANLINE & VIGNETTE ===== */
+.scanlines{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;opacity:.03;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#000 2px,#000 4px)}
+.vignette{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.6) 100%)}
+
+/* ===== UTILITY ===== */
+.lc{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.lc-96 svg{width:96px;height:96px}.lc-64 svg{width:64px;height:64px}.lc-48 svg{width:48px;height:48px}
+.lc-36 svg{width:36px;height:36px}.lc-28 svg{width:28px;height:28px}.lc-24 svg{width:24px;height:24px}
+
+/* ===== SLIDE SYSTEM ===== */
+.slide-container{width:100vw;height:100vh;position:relative;z-index:1}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:50px 80px;opacity:0;pointer-events:none;transition:opacity .8s cubic-bezier(.4,0,.2,1);overflow:hidden}
+.slide.active{opacity:1;pointer-events:auto}
+.slide .anim{opacity:0;transform:translateY(60px) scale(.95);filter:blur(8px);transition:none}
+.slide.active .anim.show{opacity:1;transform:translateY(0) scale(1);filter:blur(0);transition:opacity .9s cubic-bezier(.25,.46,.45,.94),transform .9s cubic-bezier(.25,.46,.45,.94),filter .9s ease}
+
+/* ===== TYPOGRAPHY ===== */
+.t-hero{font-size:6rem;font-weight:900;line-height:1.1;text-align:center;letter-spacing:-2px}
+.t-huge{font-size:4.5rem;font-weight:900;line-height:1.15;text-align:center;letter-spacing:-1px}
+.t-big{font-size:3.2rem;font-weight:800;line-height:1.2;text-align:center}
+.t-mid{font-size:2rem;font-weight:700;line-height:1.3;text-align:center}
+.t-body{font-size:1.3rem;font-weight:400;line-height:1.5;text-align:center;letter-spacing:.5px}
+
+.c-blue{color:var(--accent-blue)}.c-cyan{color:var(--accent-cyan)}.c-purple{color:var(--accent-purple)}
+.c-pink{color:var(--accent-pink)}.c-amber{color:var(--accent-amber)}.c-green{color:var(--accent-green)}
+.c-dark{color:var(--text-primary)}.c-gray{color:var(--text-secondary)}.c-muted{color:var(--text-muted)}
+
+.bold{font-weight:900}
+
+/* ===== GLITCH TEXT ===== */
+.glitch{position:relative;display:inline-block}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%}
+.glitch::before{left:2px;text-shadow:-2px 0 var(--accent-pink);clip:rect(24px,550px,90px,0);animation:glitch-anim-2 3s infinite linear alternate-reverse}
+.glitch::after{left:-2px;text-shadow:-2px 0 var(--accent-cyan);clip:rect(85px,550px,140px,0);animation:glitch-anim 2.5s infinite linear alternate-reverse}
+@keyframes glitch-anim{0%{clip:rect(14px,9999px,76px,0)}20%{clip:rect(68px,9999px,6px,0)}40%{clip:rect(93px,9999px,34px,0)}60%{clip:rect(26px,9999px,99px,0)}80%{clip:rect(54px,9999px,18px,0)}100%{clip:rect(81px,9999px,53px,0)}}
+@keyframes glitch-anim-2{0%{clip:rect(65px,9999px,99px,0)}20%{clip:rect(12px,9999px,56px,0)}40%{clip:rect(89px,9999px,23px,0)}60%{clip:rect(34px,9999px,78px,0)}80%{clip:rect(67px,9999px,45px,0)}100%{clip:rect(21px,9999px,91px,0)}}
+
+/* ===== NEON GLOW ===== */
+.neon-blue{text-shadow:0 0 10px var(--glow-blue),0 0 40px var(--glow-blue),0 0 80px rgba(0,128,255,.2)}
+.neon-cyan{text-shadow:0 0 10px var(--glow-cyan),0 0 40px var(--glow-cyan),0 0 80px rgba(0,240,255,.2)}
+.neon-purple{text-shadow:0 0 10px var(--glow-purple),0 0 40px var(--glow-purple),0 0 80px rgba(184,41,247,.2)}
+.neon-pink{text-shadow:0 0 10px var(--glow-pink),0 0 40px var(--glow-pink),0 0 80px rgba(255,45,143,.2)}
+.neon-green{text-shadow:0 0 10px var(--glow-green),0 0 40px var(--glow-green),0 0 80px rgba(0,255,157,.2)}
+
+/* ===== GRADIENT TEXT ===== */
+.grad-blue-cyan{background:linear-gradient(135deg,var(--accent-blue),var(--accent-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.grad-cyan-purple{background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.grad-purple-pink{background:linear-gradient(135deg,var(--accent-purple),var(--accent-pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.grad-amber-green{background:linear-gradient(135deg,var(--accent-amber),var(--accent-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ===== GLASS CARD ===== */
+.glass-card{background:rgba(255,255,255,.02);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:24px;box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)}
+
+/* ===== PULSE RING ===== */
+.pulse-ring{position:absolute;border-radius:50%;border:2px solid var(--accent-cyan);animation:pulse-ring-anim 2s ease-out infinite}
+@keyframes pulse-ring-anim{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+
+/* ===== HOLO CARD ===== */
+.holo-card{position:relative;background:linear-gradient(135deg,rgba(0,128,255,.05),rgba(0,240,255,.05));border:1px solid rgba(255,255,255,.1);border-radius:24px;overflow:hidden}
+.holo-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from 0deg,transparent,rgba(0,128,255,.1),transparent,rgba(0,240,255,.1),transparent);animation:holo-rotate 6s linear infinite}
+@keyframes holo-rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.holo-content{position:relative;z-index:1;background:rgba(5,5,8,.85);border-radius:23px;margin:1px;padding:28px}
+
+/* ===== CHAT BUBBLE ===== */
+.chat-bubble{padding:14px 20px;border-radius:18px;font-size:13px;line-height:1.5;max-width:320px;position:relative}
+.chat-user{background:rgba(0,128,255,.1);border:1px solid rgba(0,128,255,.2);color:var(--text-primary);align-self:flex-end}
+.chat-agent{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:var(--text-secondary);align-self:flex-start}
+.chat-agent::before{content:'';position:absolute;left:-6px;top:16px;width:10px;height:10px;background:rgba(255,255,255,.03);border-left:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);transform:rotate(45deg)}
+
+/* ===== RADAR CHART ===== */
+.radar-container{position:relative;width:260px;height:260px}
+.radar-ring{position:absolute;border-radius:50%;border:1px solid rgba(0,240,255,.1)}
+.radar-axis{position:absolute;top:50%;left:50%;width:50%;height:1px;background:rgba(0,240,255,.15);transform-origin:left center}
+.radar-label{position:absolute;font-size:10px;color:var(--accent-cyan);font-weight:700;white-space:nowrap}
+
+/* ===== PROVIDER TOWER ===== */
+.tower{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 16px;border-radius:20px;position:relative;min-width:130px;transition:all .3s}
+.tower .tower-bar{width:100%;height:4px;border-radius:2px;margin-top:8px;overflow:hidden;background:rgba(255,255,255,.05)}
+.tower .tower-fill{height:100%;border-radius:2px}
+.tower-l1{background:rgba(0,255,157,.06);border:1px solid rgba(0,255,157,.25);box-shadow:0 0 40px rgba(0,255,157,.1)}
+.tower-l2{background:rgba(0,128,255,.04);border:1px solid rgba(0,128,255,.12)}
+.tower-l3{background:rgba(0,240,255,.04);border:1px solid rgba(0,240,255,.12)}
+
+/* ===== FLOW ARROW ===== */
+.flow-arrow{display:flex;align-items:center;justify-content:center;padding-bottom:40px}
+
+/* ===== ANIMATIONS ===== */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<div class="slide-container">
+
+<!-- ==================== SLIDE 1: HERO ==================== -->
+<div class="slide active" id="s0">
+  <div class="anim" style="position:absolute;top:10%;left:5%;font-family:monospace;font-size:11px;color:rgba(0,128,255,.2);line-height:1.8">
+    <div>SYS.INIT &gt; LOADING MODULES...</div>
+    <div>TROUBLESHOOT_WORKSHOP &gt; OK</div>
+    <div>INTERVIEW_POD &gt; OK</div>
+    <div>CASE_FACTORY &gt; OK</div>
+    <div>STATUS &gt; <span style="color:var(--accent-green)">ALL SYSTEMS OPERATIONAL</span></div>
+  </div>
+
+  <div class="anim" style="margin-bottom:20px">
+    <div style="display:inline-flex;align-items:center;gap:12px;padding:10px 28px;border-radius:40px;border:1px solid rgba(0,128,255,.2);background:rgba(0,128,255,.05)">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 12px var(--accent-green);animation:blink 2s infinite"></span>
+      <span style="font-size:13px;color:var(--accent-blue);font-weight:700;letter-spacing:3px">LIVE DEMO</span>
+    </div>
+  </div>
+
+  <div class="anim t-hero" style="margin-top:10px">
+    <span class="glitch grad-blue-cyan neon-blue" data-text="PLATFORM">PLATFORM</span><br>
+    <span class="glitch grad-cyan-purple neon-cyan" data-text="DEMO">DEMO</span>
+  </div>
+
+  <div class="anim" style="margin-top:30px;display:flex;align-items:center;gap:40px">
+    <div style="text-align:center">
+      <div class="t-huge c-blue neon-blue bold">排查</div>
+      <div class="t-body c-muted" style="font-size:12px;letter-spacing:3px">WORKSHOP</div>
+    </div>
+    <div style="width:1px;height:50px;background:linear-gradient(180deg,transparent,rgba(0,128,255,.3),transparent)"></div>
+    <div style="text-align:center">
+      <div class="t-huge c-cyan neon-cyan bold">面试</div>
+      <div class="t-body c-muted" style="font-size:12px;letter-spacing:3px">POD</div>
+    </div>
+    <div style="width:1px;height:50px;background:linear-gradient(180deg,transparent,rgba(0,240,255,.3),transparent)"></div>
+    <div style="text-align:center">
+      <div class="t-huge c-purple neon-purple bold">案例</div>
+      <div class="t-body c-muted" style="font-size:12px;letter-spacing:3px">FACTORY</div>
+    </div>
+  </div>
+
+  <div class="anim" style="position:absolute;bottom:8%;left:50%;transform:translateX(-50%);display:flex;gap:16px">
+    <div class="glass-card" style="padding:14px 24px;display:flex;align-items:center;gap:10px">
+      <span class="lc lc-28 c-blue"><i data-lucide="search"></i></span>
+      <span style="font-size:13px;color:var(--text-secondary)">排查工坊</span>
+    </div>
+    <div class="glass-card" style="padding:14px 24px;display:flex;align-items:center;gap:10px">
+      <span class="lc lc-28 c-cyan"><i data-lucide="mic"></i></span>
+      <span style="font-size:13px;color:var(--text-secondary)">面试舱</span>
+    </div>
+    <div class="glass-card" style="padding:14px 24px;display:flex;align-items:center;gap:10px">
+      <span class="lc lc-28 c-purple"><i data-lucide="book-open"></i></span>
+      <span style="font-size:13px;color:var(--text-secondary)">案例工坊</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 2: 排查工坊 - 选题生成 ==================== -->
+<div class="slide" id="s1">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-blue))"></div>
+    <span style="font-size:13px;color:var(--accent-blue);letter-spacing:4px;font-weight:800">WORKSHOP 01</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-blue),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-blue-cyan neon-blue">选题生成</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">ASYNC GENERATION PIPELINE</div>
+
+  <!-- Flow: Student → UI → DeepSeek → Progress -->
+  <div class="anim" style="margin-top:30px;display:flex;align-items:center;gap:20px">
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:140px">
+      <div style="width:50px;height:50px;border-radius:50%;background:rgba(0,128,255,.1);display:flex;align-items:center;justify-content:center">
+        <span class="lc lc-28 c-blue"><i data-lucide="user"></i></span>
+      </div>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-blue)">学员</div>
+      <div style="font-size:10px;color:var(--text-muted)">选择故障题</div>
+    </div>
+
+    <svg width="60" height="20" viewBox="0 0 60 20">
+      <line x1="0" y1="10" x2="50" y2="10" stroke="rgba(0,128,255,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="46,6 56,10 46,14" fill="rgba(0,128,255,.4)"/>
+    </svg>
+
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:160px;border-color:rgba(0,240,255,.2)">
+      <div style="width:50px;height:50px;border-radius:50%;background:rgba(0,240,255,.1);display:flex;align-items:center;justify-content:center">
+        <span class="lc lc-28 c-cyan"><i data-lucide="layout"></i></span>
+      </div>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-cyan)">系统</div>
+      <div style="font-size:10px;color:var(--text-muted)">生成题目</div>
+    </div>
+
+    <svg width="60" height="20" viewBox="0 0 60 20">
+      <line x1="0" y1="10" x2="50" y2="10" stroke="rgba(0,240,255,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="46,6 56,10 46,14" fill="rgba(0,240,255,.4)"/>
+    </svg>
+
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:160px;border-color:rgba(0,255,157,.2);box-shadow:0 0 40px rgba(0,255,157,.08)">
+      <div style="width:50px;height:50px;border-radius:50%;background:rgba(0,255,157,.1);display:flex;align-items:center;justify-content:center;position:relative">
+        <span class="lc lc-28 c-green"><i data-lucide="zap"></i></span>
+        <div class="pulse-ring" style="width:56px;height:56px;left:-3px;top:-3px;border-color:var(--accent-green)"></div>
+      </div>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-green)">DeepSeek</div>
+      <div style="font-size:10px;color:var(--text-muted)">异步生成中...</div>
+    </div>
+
+    <svg width="60" height="20" viewBox="0 0 60 20">
+      <line x1="0" y1="10" x2="50" y2="10" stroke="rgba(0,255,157,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="46,6 56,10 46,14" fill="rgba(0,255,157,.4)"/>
+    </svg>
+
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:140px">
+      <div style="width:50px;height:50px;border-radius:50%;background:rgba(255,184,0,.1);display:flex;align-items:center;justify-content:center">
+        <span class="lc lc-28 c-amber"><i data-lucide="check-circle"></i></span>
+      </div>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-amber)">完成</div>
+      <div style="font-size:10px;color:var(--text-muted)">实时进度</div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="anim" style="margin-top:30px;width:600px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--text-muted)">生成进度</span>
+      <span style="font-size:11px;color:var(--accent-green);font-weight:800">100%</span>
+    </div>
+    <div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.05);overflow:hidden">
+      <div style="width:100%;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan),var(--accent-green));box-shadow:0 0 20px rgba(0,255,157,.3)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 3: 排查工坊 - 会话与线索 ==================== -->
+<div class="slide" id="s2">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-cyan))"></div>
+    <span style="font-size:13px;color:var(--accent-cyan);letter-spacing:4px;font-weight:800">WORKSHOP 02</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-cyan),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-cyan-purple neon-cyan">排查会话</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">SEMANTIC GATE CONTROLLED</div>
+
+  <!-- Chat interface -->
+  <div class="anim" style="margin-top:24px;display:flex;gap:30px;align-items:flex-start">
+    <!-- Chat window -->
+    <div class="glass-card" style="padding:20px;width:380px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 8px var(--accent-green)"></div>
+        <span style="font-size:12px;color:var(--accent-cyan);font-weight:800">排查会话</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text-muted);padding:4px 10px;border-radius:10px;background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.2)">L2</span>
+      </div>
+      <div class="chat-bubble chat-user">查看数据库连接状态</div>
+      <div class="chat-bubble chat-agent">连接数正常，发现慢查询日志异常...</div>
+      <div class="chat-bubble chat-user">分析慢查询执行计划</div>
+      <div class="chat-bubble chat-agent">发现索引缺失，全表扫描导致性能下降</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-cyan);animation:blink 1.4s infinite"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-cyan);animation:blink 1.4s infinite .2s"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-cyan);animation:blink 1.4s infinite .4s"></div>
+      </div>
+    </div>
+
+    <!-- Clue indicators -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:2px;margin-bottom:4px">线索释放</div>
+      <div class="glass-card" style="padding:14px 20px;display:flex;align-items:center;gap:12px;border-color:rgba(0,255,157,.2)">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,255,157,.1);display:flex;align-items:center;justify-content:center">
+          <span class="lc lc-18 c-green"><i data-lucide="unlock"></i></span>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--accent-green)">线索 1</div>
+          <div style="font-size:10px;color:var(--text-muted)">慢查询日志</div>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:14px 20px;display:flex;align-items:center;gap:12px;border-color:rgba(0,240,255,.2)">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,240,255,.1);display:flex;align-items:center;justify-content:center">
+          <span class="lc lc-18 c-cyan"><i data-lucide="unlock"></i></span>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--accent-cyan)">线索 2</div>
+          <div style="font-size:10px;color:var(--text-muted)">索引缺失</div>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:14px 20px;display:flex;align-items:center;gap:12px;border-color:rgba(255,45,143,.2);opacity:.5">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,45,143,.1);display:flex;align-items:center;justify-content:center">
+          <span class="lc lc-18 c-pink"><i data-lucide="lock"></i></span>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--accent-pink)">线索 3</div>
+          <div style="font-size:10px;color:var(--text-muted)">根因锁定</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 4: 排查工坊 - 复盘报告 ==================== -->
+<div class="slide" id="s3">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-blue))"></div>
+    <span style="font-size:13px;color:var(--accent-blue);letter-spacing:4px;font-weight:800">WORKSHOP 03</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-blue),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-blue-cyan neon-blue">复盘报告</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">AUTO-GENERATED REPORT</div>
+
+  <!-- Report cards -->
+  <div class="anim" style="margin-top:24px;display:flex;gap:20px">
+    <div class="holo-card" style="width:280px">
+      <div class="holo-content">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span class="lc lc-28 c-blue"><i data-lucide="file-text"></i></span>
+          <span style="font-size:14px;font-weight:900;color:var(--accent-blue)">诊断对比</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="padding:10px 14px;border-radius:10px;background:rgba(0,255,157,.06);border:1px solid rgba(0,255,157,.15)">
+            <div style="font-size:10px;color:var(--accent-green);margin-bottom:2px">标准答案</div>
+            <div style="font-size:12px;color:var(--text-primary)">索引缺失导致慢查询</div>
+          </div>
+          <div style="padding:10px 14px;border-radius:10px;background:rgba(255,45,143,.06);border:1px solid rgba(255,45,143,.15)">
+            <div style="font-size:10px;color:var(--accent-pink);margin-bottom:2px">学员答案</div>
+            <div style="font-size:12px;color:var(--text-primary)">连接池配置问题</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="holo-card" style="width:280px">
+      <div class="holo-content">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span class="lc lc-28 c-cyan"><i data-lucide="list-checks"></i></span>
+          <span style="font-size:14px;font-weight:900;color:var(--accent-cyan)">证据清单</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary)">
+            <span style="color:var(--accent-green)">✓</span> 慢查询日志超阈值
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary)">
+            <span style="color:var(--accent-green)">✓</span> EXPLAIN 全表扫描
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary)">
+            <span style="color:var(--accent-green)">✓</span> 索引使用率 0%
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary)">
+            <span style="color:var(--accent-pink)">✗</span> 未检查连接池
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="holo-card" style="width:200px">
+      <div class="holo-content" style="text-align:center">
+        <div style="font-size:11px;color:var(--text-muted);letter-spacing:2px;margin-bottom:12px">得分</div>
+        <div style="font-size:56px;font-weight:900;color:var(--accent-pink);line-height:1">65</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-top:4px">/ 100</div>
+        <div style="margin-top:16px;padding:8px 16px;border-radius:10px;background:rgba(0,128,255,.1);border:1px solid rgba(0,128,255,.2);font-size:11px;color:var(--accent-blue)">导出 PDF</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 5: 面试舱 - 五维评分 ==================== -->
+<div class="slide" id="s4">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-cyan))"></div>
+    <span style="font-size:13px;color:var(--accent-cyan);letter-spacing:4px;font-weight:800">POD 01</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-cyan),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-cyan-purple neon-cyan">五维评分</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">5-DIMENSION RADAR</div>
+
+  <div class="anim" style="margin-top:24px;display:flex;gap:40px;align-items:center">
+    <!-- Radar Chart -->
+    <div class="radar-container">
+      <div class="radar-ring" style="width:240px;height:240px;top:10px;left:10px"></div>
+      <div class="radar-ring" style="width:180px;height:180px;top:40px;left:40px"></div>
+      <div class="radar-ring" style="width:120px;height:120px;top:70px;left:70px"></div>
+      <div class="radar-axis" style="transform:rotate(-90deg)"></div>
+      <div class="radar-axis" style="transform:rotate(-18deg)"></div>
+      <div class="radar-axis" style="transform:rotate(54deg)"></div>
+      <div class="radar-axis" style="transform:rotate(126deg)"></div>
+      <div class="radar-axis" style="transform:rotate(198deg)"></div>
+      <div class="radar-label" style="top:0;left:50%;transform:translateX(-50%)">专业知识</div>
+      <div class="radar-label" style="top:55px;right:0">沟通</div>
+      <div class="radar-label" style="bottom:55px;right:0">逻辑</div>
+      <div class="radar-label" style="bottom:55px;left:0">解决</div>
+      <div class="radar-label" style="top:55px;left:0">深度</div>
+      <!-- Data polygon -->
+      <svg width="260" height="260" style="position:absolute;top:0;left:0">
+        <polygon points="130,35 200,80 185,160 100,175 55,95" fill="rgba(0,128,255,.15)" stroke="var(--accent-blue)" stroke-width="2"/>
+        <circle cx="130" cy="35" r="4" fill="var(--accent-cyan)"/>
+        <circle cx="200" cy="80" r="4" fill="var(--accent-cyan)"/>
+        <circle cx="185" cy="160" r="4" fill="var(--accent-cyan)"/>
+        <circle cx="100" cy="175" r="4" fill="var(--accent-cyan)"/>
+        <circle cx="55" cy="95" r="4" fill="var(--accent-cyan)"/>
+      </svg>
+    </div>
+
+    <!-- Dimension bars -->
+    <div style="display:flex;flex-direction:column;gap:14px;width:300px">
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--accent-cyan)">专业知识</span>
+          <span style="font-size:11px;color:var(--accent-cyan);font-weight:800">92</span>
+        </div>
+        <div style="width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.05)">
+          <div style="width:92%;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan))"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--accent-cyan)">沟通能力</span>
+          <span style="font-size:11px;color:var(--accent-cyan);font-weight:800">78</span>
+        </div>
+        <div style="width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.05)">
+          <div style="width:78%;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan))"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--accent-cyan)">逻辑思维</span>
+          <span style="font-size:11px;color:var(--accent-cyan);font-weight:800">85</span>
+        </div>
+        <div style="width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.05)">
+          <div style="width:85%;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan))"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--accent-cyan)">问题解决</span>
+          <span style="font-size:11px;color:var(--accent-cyan);font-weight:800">70</span>
+        </div>
+        <div style="width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.05)">
+          <div style="width:70%;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan))"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--accent-cyan)">技术深度</span>
+          <span style="font-size:11px;color:var(--accent-cyan);font-weight:800">88</span>
+        </div>
+        <div style="width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.05)">
+          <div style="width:88%;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan))"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 6: 面试舱 - 语音作答 ==================== -->
+<div class="slide" id="s5">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-purple))"></div>
+    <span style="font-size:13px;color:var(--accent-purple);letter-spacing:4px;font-weight:800">POD 02</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-purple),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-purple-pink neon-purple">语音作答</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">VOICE → TEXT → ASSESS</div>
+
+  <!-- Voice flow -->
+  <div class="anim" style="margin-top:24px;display:flex;align-items:center;gap:20px">
+    <!-- Voice input -->
+    <div style="position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center">
+      <div style="position:absolute;inset:0;border-radius:50%;border:2px solid rgba(184,41,247,.2);animation:spin 10s linear infinite"></div>
+      <div style="position:absolute;inset:20px;border-radius:50%;border:1px solid rgba(255,45,143,.15);animation:spin 8s linear infinite reverse"></div>
+      <div style="width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(184,41,247,.2),transparent 70%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(184,41,247,.3)">
+        <span class="lc lc-36 c-purple" style="filter:drop-shadow(0 0 8px var(--accent-purple))"><i data-lucide="mic"></i></span>
+      </div>
+      <!-- Sound wave rings -->
+      <div style="position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent-purple);opacity:.3;animation:pulse-ring-anim 2s ease-out infinite"></div>
+    </div>
+
+    <svg width="50" height="20" viewBox="0 0 50 20">
+      <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(184,41,247,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="36,6 46,10 36,14" fill="rgba(184,41,247,.4)"/>
+    </svg>
+
+    <!-- Transcription -->
+    <div class="glass-card" style="padding:20px 24px;min-width:180px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="lc lc-20 c-blue"><i data-lucide="type"></i></span>
+        <span style="font-size:12px;font-weight:800;color:var(--accent-blue)">语音转写</span>
+      </div>
+      <div style="width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.05);overflow:hidden">
+        <div style="width:85%;height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan));animation:blink 2s infinite"></div>
+      </div>
+      <div style="font-family:monospace;font-size:9px;color:rgba(0,128,255,.4)">accuracy: 94.2%</div>
+    </div>
+
+    <svg width="50" height="20" viewBox="0 0 50 20">
+      <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(0,128,255,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="36,6 46,10 36,14" fill="rgba(0,128,255,.4)"/>
+    </svg>
+
+    <!-- Quality -->
+    <div class="glass-card" style="padding:20px 24px;min-width:180px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="lc lc-20 c-cyan"><i data-lucide="gauge"></i></span>
+        <span style="font-size:12px;font-weight:800;color:var(--accent-cyan)">质量评估</span>
+      </div>
+      <div style="font-size:24px;font-weight:900;color:var(--accent-cyan)">85<span style="font-size:12px;color:var(--text-muted)">%</span></div>
+      <div style="font-size:10px;color:var(--text-muted)">语义完整性</div>
+    </div>
+
+    <svg width="50" height="20" viewBox="0 0 50 20">
+      <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(0,240,255,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="36,6 46,10 36,14" fill="rgba(0,240,255,.4)"/>
+    </svg>
+
+    <!-- Report -->
+    <div class="glass-card" style="padding:20px 24px;min-width:160px;display:flex;flex-direction:column;gap:8px;border-color:rgba(184,41,247,.2);box-shadow:0 0 40px rgba(184,41,247,.08)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="lc lc-20 c-purple"><i data-lucide="file-text"></i></span>
+        <span style="font-size:12px;font-weight:800;color:var(--accent-purple)">面试报告</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:10px;color:var(--text-muted)">综合评语</div>
+        <div style="font-size:10px;color:var(--text-muted)">语音回放</div>
+        <div style="font-size:10px;color:var(--text-muted)">评分详情</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 7: 案例工坊 - 学员发布 ==================== -->
+<div class="slide" id="s6">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-amber))"></div>
+    <span style="font-size:13px;color:var(--accent-amber);letter-spacing:4px;font-weight:800">FACTORY 01</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-amber),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-amber-green neon-green">学员发布</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">AI STRUCTURED PREVIEW</div>
+
+  <!-- Flow -->
+  <div class="anim" style="margin-top:24px;display:flex;align-items:center;gap:20px">
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:140px">
+      <span class="lc lc-32 c-amber"><i data-lucide="edit-3"></i></span>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-amber)">发布案例</div>
+    </div>
+
+    <svg width="50" height="20" viewBox="0 0 50 20">
+      <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(255,184,0,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="36,6 46,10 36,14" fill="rgba(255,184,0,.4)"/>
+    </svg>
+
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:160px;border-color:rgba(0,240,255,.2)">
+      <span class="lc lc-32 c-cyan"><i data-lucide="sparkles"></i></span>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-cyan)">AI 结构化</div>
+      <div style="font-size:10px;color:var(--text-muted)">自动提取</div>
+    </div>
+
+    <svg width="50" height="20" viewBox="0 0 50 20">
+      <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(0,240,255,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="36,6 46,10 36,14" fill="rgba(0,240,255,.4)"/>
+    </svg>
+
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:160px;border-color:rgba(255,45,143,.2)">
+      <span class="lc lc-32 c-pink"><i data-lucide="shield-alert"></i></span>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-pink)">敏感检测</div>
+      <div style="font-size:10px;color:var(--text-muted)">自动脱敏</div>
+    </div>
+
+    <svg width="50" height="20" viewBox="0 0 50 20">
+      <line x1="0" y1="10" x2="40" y2="10" stroke="rgba(255,45,143,.4)" stroke-width="2" stroke-dasharray="6,4">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+      </line>
+      <polygon points="36,6 46,10 36,14" fill="rgba(255,45,143,.4)"/>
+    </svg>
+
+    <div class="glass-card" style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:140px;border-color:rgba(255,184,0,.2)">
+      <span class="lc lc-32 c-amber"><i data-lucide="clock"></i></span>
+      <div style="font-size:13px;font-weight:800;color:var(--accent-amber)">待审核</div>
+    </div>
+  </div>
+
+  <!-- Structured preview -->
+  <div class="anim" style="margin-top:24px;display:flex;gap:16px">
+    <div class="glass-card" style="padding:16px 20px;min-width:200px">
+      <div style="font-size:10px;color:var(--text-muted);letter-spacing:2px;margin-bottom:8px">故障描述</div>
+      <div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.05);margin-bottom:6px"></div>
+      <div style="width:80%;height:6px;border-radius:3px;background:rgba(255,255,255,.05)"></div>
+    </div>
+    <div class="glass-card" style="padding:16px 20px;min-width:200px">
+      <div style="font-size:10px;color:var(--text-muted);letter-spacing:2px;margin-bottom:8px">排查步骤</div>
+      <div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.05);margin-bottom:6px"></div>
+      <div style="width:70%;height:6px;border-radius:3px;background:rgba(255,255,255,.05)"></div>
+    </div>
+    <div class="glass-card" style="padding:16px 20px;min-width:200px">
+      <div style="font-size:10px;color:var(--text-muted);letter-spacing:2px;margin-bottom:8px">根因分析</div>
+      <div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.05);margin-bottom:6px"></div>
+      <div style="width:85%;height:6px;border-radius:3px;background:rgba(255,255,255,.05)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 8: 案例工坊 - 审核发布 ==================== -->
+<div class="slide" id="s7">
+  <div class="anim" style="position:absolute;top:6%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,transparent,var(--accent-purple))"></div>
+    <span style="font-size:13px;color:var(--accent-purple);letter-spacing:4px;font-weight:800">FACTORY 02</span>
+    <div style="width:40px;height:2px;background:linear-gradient(90deg,var(--accent-purple),transparent)"></div>
+  </div>
+
+  <div class="anim t-huge">
+    <span class="grad-purple-pink neon-purple">审核发布</span>
+  </div>
+
+  <div class="anim t-body c-gray" style="margin-top:8px;font-size:15px;letter-spacing:2px">DUAL REVIEW & PUBLISH</div>
+
+  <!-- Role flow -->
+  <div class="anim" style="margin-top:24px;display:flex;align-items:flex-start;gap:20px">
+    <!-- Instructor -->
+    <div class="glass-card" style="padding:24px;width:240px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,184,0,.1);display:flex;align-items:center;justify-content:center">
+          <span class="lc lc-24 c-amber"><i data-lucide="user-check"></i></span>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--accent-amber)">讲师</div>
+          <div style="font-size:10px;color:var(--text-muted)">初审</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="padding:8px 12px;border-radius:8px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.1);font-size:11px;color:var(--text-secondary)">编辑结构化内容</div>
+        <div style="padding:8px 12px;border-radius:8px;background:rgba(255,184,0,.06);border:1px solid rgba(255,184,0,.1);font-size:11px;color:var(--text-secondary)">质量把关</div>
+      </div>
+      <div style="padding:8px 16px;border-radius:8px;background:var(--accent-amber);text-align:center;font-size:11px;font-weight:900;color:#000">通过初审</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;padding-top:40px">
+      <svg width="40" height="20" viewBox="0 0 40 20">
+        <line x1="0" y1="10" x2="30" y2="10" stroke="rgba(255,184,0,.4)" stroke-width="2" stroke-dasharray="5,3">
+          <animate attributeName="stroke-dashoffset" values="16;0" dur="1s" repeatCount="indefinite"/>
+        </line>
+        <polygon points="26,6 36,10 26,14" fill="rgba(255,184,0,.4)"/>
+      </svg>
+    </div>
+
+    <!-- Admin -->
+    <div class="glass-card" style="padding:24px;width:240px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(184,41,247,.1);display:flex;align-items:center;justify-content:center">
+          <span class="lc lc-24 c-purple"><i data-lucide="shield-check"></i></span>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--accent-purple)">管理员</div>
+          <div style="font-size:10px;color:var(--text-muted)">终审</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="padding:8px 12px;border-radius:8px;background:rgba(184,41,247,.06);border:1px solid rgba(184,41,247,.1);font-size:11px;color:var(--text-secondary)">终审内容质量</div>
+        <div style="padding:8px 12px;border-radius:8px;background:rgba(184,41,247,.06);border:1px solid rgba(184,41,247,.1);font-size:11px;color:var(--text-secondary)">确认脱敏处理</div>
+      </div>
+      <div style="padding:8px 16px;border-radius:8px;background:var(--accent-purple);text-align:center;font-size:11px;font-weight:900;color:#fff">终审发布</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;padding-top:40px">
+      <svg width="40" height="20" viewBox="0 0 40 20">
+        <line x1="0" y1="10" x2="30" y2="10" stroke="rgba(184,41,247,.4)" stroke-width="2" stroke-dasharray="5,3">
+          <animate attributeName="stroke-dashoffset" values="16;0" dur="1s" repeatCount="indefinite"/>
+        </line>
+        <polygon points="26,6 36,10 26,14" fill="rgba(184,41,247,.4)"/>
+      </svg>
+    </div>
+
+    <!-- Published -->
+    <div class="glass-card" style="padding:24px;width:200px;display:flex;flex-direction:column;gap:12px;border-color:rgba(0,255,157,.2);box-shadow:0 0 40px rgba(0,255,157,.08)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,255,157,.1);display:flex;align-items:center;justify-content:center">
+          <span class="lc lc-24 c-green"><i data-lucide="check-circle"></i></span>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:900;color:var(--accent-green)">上线</div>
+          <div style="font-size:10px;color:var(--text-muted)">新情景题</div>
+        </div>
+      </div>
+      <div style="padding:8px 12px;border-radius:8px;background:rgba(0,255,157,.06);border:1px solid rgba(0,255,157,.1);font-size:11px;color:var(--accent-green);text-align:center">学员可见</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 9: 三角色闭环 ==================== -->
+<div class="slide" id="s8">
+  <div class="anim" style="margin-bottom:10px">
+    <span style="font-size:13px;color:var(--text-muted);letter-spacing:4px">CLOSED LOOP</span>
+  </div>
+
+  <div class="anim t-huge" style="margin-bottom:30px">
+    <span class="grad-blue-cyan neon-blue">三角色闭环</span>
+  </div>
+
+  <!-- Cycle visualization -->
+  <div class="anim" style="position:relative;width:500px;height:320px">
+    <!-- Connection paths -->
+    <svg width="500" height="320" style="position:absolute;top:0;left:0">
+      <defs>
+        <marker id="arrBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="var(--accent-blue)"/></marker>
+        <marker id="arrAmber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="var(--accent-amber)"/></marker>
+        <marker id="arrPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="var(--accent-purple)"/></marker>
+      </defs>
+      <path d="M140,240 Q250,300 360,240" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrAmber)" opacity=".6">
+        <animate attributeName="stroke-dashoffset" values="16;0" dur="1.2s" repeatCount="indefinite"/>
+      </path>
+      <path d="M380,210 Q420,160 340,110" fill="none" stroke="var(--accent-amber)" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrPurple)" opacity=".6">
+        <animate attributeName="stroke-dashoffset" values="16;0" dur="1.2s" repeatCount="indefinite"/>
+      </path>
+      <path d="M290,80 Q180,60 130,130" fill="none" stroke="var(--accent-purple)" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrBlue)" opacity=".6">
+        <animate attributeName="stroke-dashoffset" values="16;0" dur="1.2s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+
+    <!-- Student node -->
+    <div style="position:absolute;bottom:20px;left:80px;width:120px;height:120px;border-radius:50%;background:rgba(0,128,255,.1);border:2px solid rgba(0,128,255,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(0,128,255,.15)">
+      <span class="lc lc-32 c-blue"><i data-lucide="user"></i></span>
+      <div style="font-size:14px;font-weight:900;color:var(--accent-blue);margin-top:4px">学员</div>
+      <div style="font-size:10px;color:var(--text-muted)">训练 · 发布</div>
+    </div>
+
+    <!-- Instructor node -->
+    <div style="position:absolute;bottom:20px;right:80px;width:120px;height:120px;border-radius:50%;background:rgba(255,184,0,.1);border:2px solid rgba(255,184,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(255,184,0,.15)">
+      <span class="lc lc-32 c-amber"><i data-lucide="graduation-cap"></i></span>
+      <div style="font-size:14px;font-weight:900;color:var(--accent-amber);margin-top:4px">讲师</div>
+      <div style="font-size:10px;color:var(--text-muted)">初审 · 把控</div>
+    </div>
+
+    <!-- Admin node -->
+    <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);width:120px;height:120px;border-radius:50%;background:rgba(184,41,247,.1);border:2px solid rgba(184,41,247,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(184,41,247,.15)">
+      <span class="lc lc-32 c-purple"><i data-lucide="shield"></i></span>
+      <div style="font-size:14px;font-weight:900;color:var(--accent-purple);margin-top:4px">管理员</div>
+      <div style="font-size:10px;color:var(--text-muted)">终审 · 上线</div>
+    </div>
+
+    <!-- Center -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;background:rgba(5,5,8,.9);border:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <span class="lc lc-24 c-gray"><i data-lucide="refresh-cw"></i></span>
+      <div style="font-size:9px;color:var(--text-muted);margin-top:2px">反哺</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: SUMMARY ==================== -->
+<div class="slide" id="s9">
+  <div class="anim" style="margin-bottom:10px">
+    <span style="font-size:13px;color:var(--text-muted);letter-spacing:4px">SYSTEM OVERVIEW</span>
+  </div>
+
+  <div class="anim t-huge" style="margin-bottom:30px">
+    <span class="grad-blue-cyan neon-blue">完整闭环</span>
+  </div>
+
+  <div class="anim" style="display:flex;gap:24px;margin-bottom:30px">
+    <div class="holo-card" style="width:280px">
+      <div class="holo-content" style="text-align:center">
+        <div style="width:60px;height:60px;border-radius:50%;background:rgba(0,128,255,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 30px rgba(0,128,255,.15)">
+          <span class="lc lc-36 c-blue"><i data-lucide="search"></i></span>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:var(--accent-blue);margin-bottom:4px">排查工坊</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6">选题 → 排查 → 复盘<br>AI 异步生成 · 语义网关</div>
+      </div>
+    </div>
+
+    <div class="holo-card" style="width:280px">
+      <div class="holo-content" style="text-align:center">
+        <div style="width:60px;height:60px;border-radius:50%;background:rgba(0,240,255,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 30px rgba(0,240,255,.15)">
+          <span class="lc lc-36 c-cyan"><i data-lucide="mic"></i></span>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:var(--accent-cyan);margin-bottom:4px">面试舱</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6">五维评分 · 雷达图<br>语音作答 · 实时评估</div>
+      </div>
+    </div>
+
+    <div class="holo-card" style="width:280px">
+      <div class="holo-content" style="text-align:center">
+        <div style="width:60px;height:60px;border-radius:50%;background:rgba(184,41,247,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 30px rgba(184,41,247,.15)">
+          <span class="lc lc-36 c-purple"><i data-lucide="book-open"></i></span>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:var(--accent-purple);margin-bottom:4px">案例工坊</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6">学员发布 · AI 结构化<br>讲师初审 · 管理员终审</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="anim" style="display:flex;align-items:center;gap:20px">
+    <div style="height:1px;flex:1;background:linear-gradient(90deg,transparent,rgba(0,128,255,.3))"></div>
+    <span style="font-size:12px;color:var(--text-muted);letter-spacing:3px">CLOSED-LOOP TEACHING ECOSYSTEM</span>
+    <div style="height:1px;flex:1;background:linear-gradient(90deg,rgba(0,255,157,.3),transparent)"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ===== CANVAS PARTICLE SYSTEM =====
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+let W,H,particles=[];
+
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();
+window.addEventListener('resize',resize);
+
+class Particle{
+  constructor(){
+    this.x=Math.random()*W;
+    this.y=Math.random()*H;
+    this.vx=(Math.random()-.5)*.3;
+    this.vy=(Math.random()-.5)*.3;
+    this.size=Math.random()*1.5+.5;
+    this.alpha=Math.random()*.5+.1;
+    this.hue=Math.random()> .5 ? 210 : 280;
+  }
+  update(){
+    this.x+=this.vx;this.y+=this.vy;
+    if(this.x<0||this.x>W)this.vx*=-1;
+    if(this.y<0||this.y>H)this.vy*=-1;
+  }
+  draw(){
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${this.hue},80%,60%,${this.alpha})`;
+    ctx.fill();
+  }
+}
+
+for(let i=0;i<80;i++)particles.push(new Particle());
+
+function animateCanvas(){
+  ctx.fillStyle='rgba(5,5,8,.15)';
+  ctx.fillRect(0,0,W,H);
+  particles.forEach(p=>{p.update();p.draw()});
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x;
+      const dy=particles[i].y-particles[j].y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle=`rgba(0,128,255,${.08*(1-dist/120)})`;
+        ctx.lineWidth=.5;
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animateCanvas);
+}
+animateCanvas();
+
+// ===== LUCIDE ICONS =====
+lucide.createIcons();
+
+// ===== SLIDE SYSTEM =====
+const slides=document.querySelectorAll('.slide'),total=slides.length;
+let cur=0;
+
+function go(n){
+  if(n<0||n>=total||n===cur)return;
+  slides[cur].classList.remove('active');
+  slides[cur].querySelectorAll('.anim').forEach(e=>e.classList.remove('show'));
+  cur=n;
+  slides[cur].classList.add('active');
+  slides[cur].querySelectorAll('.anim').forEach((e,i)=>{
+    e.classList.remove('show');
+    setTimeout(()=>e.classList.add('show'),150+i*180);
+  });
+}
+
+slides[0].querySelectorAll('.anim').forEach((e,i)=>setTimeout(()=>e.classList.add('show'),300+i*200));
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();go(cur+1)}
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(cur-1)}
+  else if(e.key==='Home'){e.preventDefault();go(0)}
+  else if(e.key==='End'){e.preventDefault();go(total-1)}
+});
+
+let tx=0,ty=0;
+document.addEventListener('touchstart',e=>{tx=e.changedTouches[0].screenX;ty=e.changedTouches[0].screenY});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].screenX-tx,dy=e.changedTouches[0].screenY-ty;
+  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){dx<0?go(cur+1):go(cur-1)}
+});
+
+let wc=false;
+document.addEventListener('wheel',e=>{
+  if(wc)return;wc=true;setTimeout(()=>wc=false,700);
+  e.deltaY>0?go(cur+1):go(cur-1);
+});
+</script>
+
+</body>
+</html>
