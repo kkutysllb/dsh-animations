@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>TLS 1.3 握手 · network-protocol-viz 案例</title>
+<style>
+  :root { --bg:#070b14; --line:rgba(120,150,255,.28);
+    --blue:#5b9cff; --green:#3ddc84; --orange:#ffb454; --pink:#ff6b9d;
+    --text:#eaf0ff; --sub:#8fa0c9; --mono:"SF Mono",Menlo,Consolas,monospace; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text);
+    height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+  header { padding:3.4vh 4vw .6vh; display:flex; align-items:baseline; gap:1.6vw; }
+  h1 { font-size:3.2vh; font-weight:800; }
+  h1 b { color:var(--blue); }
+  .rtt { font-size:1.65vh; color:var(--sub); }
+  .rtt b { color:var(--green); }
+  /* ── 上：时序走廊 ── */
+  .seq { position:relative; flex:1; margin:1vh 4vw 0; }
+  .host { position:absolute; top:0; width:19vw; text-align:center; padding:1.8vh 1vw;
+    border:1px solid var(--line); border-radius:16px; background:linear-gradient(170deg,#1a2c52,#101a30);
+    box-shadow:0 0 30px rgba(91,156,255,.18); }
+  .host .em { font-size:3.6vh; }
+  .host h2 { font-size:2.1vh; margin-top:.6vh; }
+  .host p { font-size:1.45vh; color:var(--sub); margin-top:.4vh; font-family:var(--mono); }
+  .client { left:0; } .server { right:0; }
+  .lane { position:absolute; top:14.5vh; bottom:2vh; width:2px;
+    background:linear-gradient(180deg,var(--line),rgba(120,150,255,.08)); }
+  .lane.c { left:9.5vw; } .lane.s { right:9.5vw; }
+  .msg { position:absolute; height:5.4vh; display:flex; align-items:center; }
+  .msg .pill { font-size:1.75vh; padding:1vh 1.2vw; border-radius:999px; white-space:nowrap;
+    border:1px solid; background:rgba(10,16,30,.94); box-shadow:0 0 18px; }
+  .msg .wing { position:absolute; top:50%; width:0; height:0; border-top:6px solid transparent; border-bottom:6px solid transparent; }
+  .msg.right .wing { border-left:10px solid; }
+  .msg.left  .wing { border-right:10px solid; }
+  .msg .note { position:absolute; top:100%; margin-top:.4vh; font-size:1.35vh; color:var(--sub); white-space:nowrap; }
+  .blue   { color:var(--blue);  border-color:var(--blue);  --c:var(--blue); }
+  .orange { color:var(--orange);border-color:var(--orange);--c:var(--orange); }
+  .pink   { color:var(--pink);  border-color:var(--pink);  --c:var(--pink); }
+  .msg.right { animation:goRight 3s ease-in-out infinite; }
+  .msg.left  { animation:goLeft  3s ease-in-out infinite; }
+  @keyframes goRight { 0%{ transform:translateX(0); opacity:0;} 8%{opacity:1;} 46%{opacity:1;} 54%,100%{opacity:0; transform:translateX(calc(71vw - 100%));} }
+  @keyframes goLeft  { 0%{ transform:translateX(0); opacity:0;} 8%{opacity:1;} 46%{opacity:1;} 54%,100%{opacity:0; transform:translateX(calc(-71vw + 100%));} }
+  .rtt-mark { position:absolute; left:50%; transform:translateX(-50%); font-size:1.5vh; color:var(--sub);
+    font-family:var(--mono); letter-spacing:.14em; }
+  /* ── 下：加密隧道横幅 ── */
+  .tunnel { margin:0 4vw; height:8vh; border-radius:12px; border:1px dashed var(--green);
+    background:repeating-linear-gradient(45deg, rgba(61,220,132,.08) 0 14px, transparent 14px 28px);
+    display:flex; align-items:center; justify-content:center; gap:2vw;
+    opacity:0; animation:appear 3s 2.2s forwards; }
+  @keyframes appear { to { opacity:1; } }
+  .tunnel span { font-size:1.75vh; color:var(--green); font-family:var(--mono); }
+  .lock { font-size:2.2vh; }
+  /* ── 底：步骤横排 ── */
+  .steps { display:flex; gap:1vw; margin:1.6vh 4vw 2.8vh; }
+  .step { flex:1; border:1px solid var(--line); border-top:4px solid var(--c,var(--blue)); border-radius:10px;
+    padding:1.6vh 1vw; background:rgba(16,24,44,.6); animation:rise .6s both; }
+  @keyframes rise { from { opacity:0; transform:translateY(14px);} }
+  .step h3 { font-size:1.7vh; margin-bottom:.6vh; }
+  .step h3 code { font-family:var(--mono); color:var(--c,var(--blue)); font-size:1.6vh; }
+  .step p { font-size:1.4vh; color:var(--sub); line-height:1.6; }
+  .s1{--c:var(--blue);animation-delay:.15s} .s2{--c:var(--orange);animation-delay:.4s}
+  .s3{--c:var(--pink);animation-delay:.65s} .s4{--c:var(--green);animation-delay:.9s}
+  .badge { text-align:center; font-size:1.4vh; color:rgba(143,160,201,.75); font-family:var(--mono);
+    letter-spacing:.1em; padding-bottom:2vh; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>TLS <b>1.3</b> 握手：一次往返建立加密</h1>
+    <p class="rtt">相比 TLS 1.2 的 2-RTT，TLS 1.3 只要 <b>1-RTT</b> · 0-RTT 恢复模式可更快</p>
+  </header>
+
+  <div class="seq">
+    <div class="host client"><div class="em">💻</div><h2>Client 客户端</h2><p>browser:443 →</p></div>
+    <div class="host server"><div class="em">🖥️</div><h2>Server 服务器</h2><p>← :443 nginx</p></div>
+    <div class="lane c"></div><div class="lane s"></div>
+
+    <div class="msg right blue" style="top:21vh; left:10.5vw;">
+      <span class="pill">① ClientHello (key_share)</span><span class="wing"></span>
+      <span class="note">支持 TLS_AES_128_GCM · x25519</span>
+    </div>
+    <div class="rtt-mark" style="top:21vh;">── ① 客户端直接带上 ECDHE 公钥 ──</div>
+    <div class="msg left orange" style="top:34vh; right:10.5vw;">
+      <span class="wing"></span><span class="pill">② ServerHello + Cert + Finished</span>
+      <span class="note">证书链：*.example.com（Let's Encrypt）</span>
+    </div>
+    <div class="msg right pink" style="top:47vh; left:10.5vw;">
+      <span class="pill">③ Finished ✔ 密钥一致</span><span class="wing"></span>
+      <span class="note">握手完成，密钥就绪</span>
+    </div>
+  </div>
+
+  <div class="tunnel"><span class="lock">🔒</span><span>④ APPLICATION DATA · AES-256-GCM 加密隧道已建立（1-RTT）</span><span class="lock">🔒</span></div>
+
+  <div class="steps">
+    <div class="step s1"><h3>① <code>ClientHello</code></h3><p>客户端直接发送密码套件 + ECDHE 公钥（key_share），把 1.2 的两步并成一步。</p></div>
+    <div class="step s2"><h3>② <code>ServerHello + Certificate</code></h3><p>服务器选定套件、回传 ECDHE 公钥与证书链，双方各自推出相同会话密钥。</p></div>
+    <div class="step s3"><h3>③ <code>Finished</code> 双向校验</h3><p>用会话密钥加密握手摘要互验——中间人篡改任何一步都会在这里暴露。</p></div>
+    <div class="step s4"><h3>④ <code>Application Data</code></h3><p>之后所有 HTTP/2、HTTP/3 报文都在 AEAD 对称加密隧道中传输。</p></div>
+  </div>
+  <div class="badge">capture: tcpdump -A port 443 · wireshark "tls.handshake"</div>
+</body>
+</html>

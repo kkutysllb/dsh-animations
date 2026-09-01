@@ -1,19 +1,61 @@
 {
-  "name": "ai-animation-skills",
-  "version": "0.1.0",
-  "description": "AI-powered HTML animation & visualization skill collection",
-  "private": true,
+  "name": "dsh-animations",
+  "version": "1.0.0",
+  "description": "DSH 原生动效技能包：8 个 HTML 动画技能（PPT 翻页演示 / 流程图 / 网络协议可视化 / 动态架构图 / 学霸笔记 / 卡片剧场 / 视频分镜 / 手机 UI 演示），激活即注册为 runtime skill，配「动画演示专家」Agent 预设。",
+  "type": "module",
+  "main": "entry.js",
+  "exports": {
+    ".": "./entry.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "entry.js",
+    "cordis.patch.yml",
+    "skills",
+    "presets",
+    "docs",
+    "release",
+    "README.md",
+    "README_EN.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
   "scripts": {
+    "smoke": "node scripts/smoke-plugin.mjs",
+    "sync:mirror": "node scripts/sync-to-dsh-plugins.mjs",
+    "sync:check": "node scripts/sync-to-dsh-plugins.mjs --check",
+    "prepack": "npm run smoke",
     "release": "node scripts/release/update-readme.mjs"
   },
   "keywords": [
+    "dsh",
+    "cordis",
+    "plugin",
+    "skills",
     "animation",
     "visualization",
     "html",
     "ppt",
-    "ai",
-    "skills"
+    "flowchart",
+    "network-protocol",
+    "architecture-diagram",
+    "dsh-animations"
   ],
   "author": "UncleC",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkutysllb/dsh-animations.git"
+  },
+  "homepage": "https://github.com/kkutysllb/dsh-animations#readme",
+  "bugs": {
+    "url": "https://github.com/kkutysllb/dsh-animations/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

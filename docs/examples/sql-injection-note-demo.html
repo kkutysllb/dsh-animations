@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SQL 注入漏洞笔记 · scholar-notes 学霸笔记案例</title>
+<style>
+  :root {
+    --paper:#fdf6e3; --paper-dark:#f5ecd3; --line:#e8e0cc; --ink:#2c2c2c;
+    --red:#c0392b; --blue:#2980b9; --green:#27ae60; --purple:#8e44ad; --orange:#e67e22;
+    --hl-yellow:rgba(255,235,59,.4); --hl-pink:rgba(255,105,180,.28); --hl-green:rgba(46,204,113,.22);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#3d3d3d radial-gradient(800px 600px at 50% 0%, #464646, #333);
+    min-height:100vh; display:flex; justify-content:center; padding:4vh 2vw;
+    font-family:"Kaiti SC","STKaiti","KaiTi","Yuanti SC",serif; }
+  .paper {
+    width:min(1060px,96vw); background:
+      repeating-linear-gradient(180deg, transparent 0 34px, var(--line) 34px 35px), var(--paper);
+    border-radius:6px; box-shadow:0 24px 60px rgba(0,0,0,.45);
+    padding:5.5vh 4.5vw 6vh; position:relative; color:var(--ink);
+  }
+  .paper::before { content:""; position:absolute; inset:0 0 0 5.2vw; width:1px; background:#e8b8b0; }
+  /* 胶带 */
+  .tape { position:absolute; width:150px; height:34px; background:rgba(255,255,255,.5);
+    box-shadow:0 2px 6px rgba(0,0,0,.12); transform:rotate(-4deg); left:50%; top:-14px; margin-left:-90px;
+    border-left:1px dashed rgba(0,0,0,.08); border-right:1px dashed rgba(0,0,0,.08); }
+  .date { position:absolute; right:4vw; top:3vh; font-size:15px; color:#8a7f66; transform:rotate(2deg); }
+  h1 { font-size:34px; margin:0 0 1vh 0; transform:rotate(-.6deg); }
+  h1 .u { background:linear-gradient(transparent 62%, var(--hl-yellow) 62%); padding:0 4px; }
+  .meta { color:#6d6350; font-size:15px; margin-bottom:3vh; letter-spacing:1px; }
+  h2 { font-size:21px; margin:3.2vh 0 1.2vh; color:var(--purple); }
+  h2::before { content:"✎ "; }
+  p, li { font-size:17px; line-height:35px; }
+  .hl-y { background:linear-gradient(transparent 55%, var(--hl-yellow) 55%); }
+  .hl-p { background:linear-gradient(transparent 55%, var(--hl-pink) 55%); }
+  .hl-g { background:linear-gradient(transparent 55%, var(--hl-green) 55%); }
+  .red { color:var(--red); font-weight:700; } .blue { color:var(--blue); font-weight:700; }
+  .green { color:var(--green); font-weight:700; } .orange { color:var(--orange); font-weight:700; }
+  /* 手写便利贴 */
+  .sticky {
+    position:absolute; right:-14px; top:120px; width:190px; padding:16px 14px 18px;
+    background:#fff9a8; box-shadow:0 8px 18px rgba(0,0,0,.22); transform:rotate(4deg);
+    font-size:15px; line-height:1.7;
+  }
+  .sticky::before { content:""; position:absolute; top:-8px; left:50%; width:64px; height:16px;
+    margin-left:-32px; background:rgba(255,255,255,.55); box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  /* 代码卡（黑白打印贴纸风） */
+  .code {
+    font-family:"SF Mono",Menlo,Consolas,monospace; font-size:14.5px; line-height:1.85;
+    background:#20232a; color:#e6e6e6; border-radius:8px; padding:16px 18px; margin:1.4vh 0;
+    box-shadow:2px 4px 0 rgba(0,0,0,.18); transform:rotate(-.4deg); position:relative;
+  }
+  .code .cap { position:absolute; top:-13px; left:14px; background:var(--paper); padding:0 10px;
+    font-size:13px; color:#6d6350; transform:rotate(-1deg); border:1px solid var(--line); border-radius:4px; }
+  .code .bad { color:#ff7b72; } .code .good { color:#7ee787; } .code .k { color:#79c0ff; }
+  .code .str { color:#ffa657; }
+  .tip { border-left:4px solid var(--orange); padding:.6vh 1vw; background:rgba(230,126,34,.08);
+    font-size:16px; margin-top:1vh; transform:rotate(.3deg); }
+  ul { list-style:none; }
+  li::before { content:"▫ "; color:var(--purple); }
+  .memo { margin-top:3vh; border:2px dashed var(--red); border-radius:10px; padding:1.6vh 1.6vw;
+    font-size:17px; transform:rotate(-.5deg); background:rgba(192,57,43,.05); }
+</style>
+</head>
+<body>
+  <div class="paper">
+    <div class="tape"></div>
+    <div class="date">2026-09-01 · WebSec 04</div>
+    <h1><span class="u">SQL 注入</span>漏洞笔记</h1>
+    <div class="meta">#Web安全 #OWASP-Top1 #注入类 · 复习 ×3 · ⭐⭐⭐⭐⭐</div>
+
+    <h2>一、一句话原理</h2>
+    <p>用户输入被<span class="hl-y">直接拼进 SQL 语句</span>，攻击者用输入<span class="red">改变语句结构</span>——数据与代码的边界被打破。</p>
+
+    <h2>二、危险写法（登录绕过）</h2>
+    <div class="code">
+      <span class="cap">❌ 漏洞代码 · 字符串拼接</span><br>
+      <span class="k">String</span> sql = <span class="str">"SELECT * FROM users WHERE name='"</span> + username<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;+ <span class="str">"' AND pwd='"</span> + password + <span class="str">"'"</span>;<br>
+      <span class="bad">// 输入：admin' -- &nbsp;→ 密码条件被注释，直接登录！</span>
+    </div>
+
+    <h2>三、修复方案</h2>
+    <div class="code">
+      <span class="cap">✅ 参数化查询 · 预编译</span><br>
+      PreparedStatement ps = conn.prepareStatement(<br>
+      &nbsp;&nbsp;<span class="str">"SELECT * FROM users WHERE name=? AND pwd=?"</span>);<br>
+      ps.setString(<span class="good">1</span>, username); ps.setString(<span class="good">2</span>, password);<br>
+      <span class="good">// 参数只当"数据"，永不参与语法解析</span>
+    </div>
+    <ul>
+      <li><span class="blue">参数化查询</span>是根治手段；ORM（MyBatis #{} / SQLAlchemy）默认安全</li>
+      <li>最小权限：应用账号禁 <span class="hl-p">DROP / FILE</span> 等高危权限</li>
+      <li>纵深防御：输入白名单校验 + WAF + 报错信息脱敏</li>
+    </ul>
+
+    <div class="tip">⚡ 实战口诀：<b>所有外部输入都是不可信的</b>——拼接处即注入点，凡是 SQL 就要预编译。</div>
+
+    <div class="memo">📌 记忆卡：单引号探测 → 注释符(<b>-- #</b>)截断 → UNION 联合查询 → 时间盲注(<b>sleep</b>)。修复三板斧：<span class="green">预编译</span>、<span class="green">最小权限</span>、<span class="green">白名单</span>。</div>
+
+    <div class="sticky">先修这个！<br><br>旧代码里还有 <b>3 处</b>拼接：<br>search / order /<br>export 模块 🐛</div>
+  </div>
+</body>
+</html>

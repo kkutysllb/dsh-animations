@@ -2,6 +2,8 @@
 
 # DSH Animation Skills
 
+> ⚠️ **This English README is based on v0.1 (skills collection).** The repo has been restructured into a standard DSH plugin (v1.0.0): plugin manifest, runtime-skill registration, agent preset, and a fully regenerated case gallery. See the Chinese `README.md` for the authoritative, up-to-date documentation; this file will be refreshed in a follow-up release.
+
 **A collection of [Agent Skills](https://support.claude.com/en/articles/12512176-what-are-skills) for generating cool HTML animations with AI · 一套用 AI 生成炫酷 HTML 动画的 Skill 集合**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](./LICENSE)

@@ -1,0 +1,52 @@
+{
+  "skills": [
+    {
+      "dir": "ppt-animation",
+      "name": "ppt-animation",
+      "description": "生成 PPT 风格的翻页 HTML 演示动画：16:9 单文件，每次翻页后页面内元素依次缓入出现，内置暗色科技/暖色报纸/简约白/赛博朋克红橙/渐变暗色五套主题，键盘/滚轮/点击翻页，适合视频科普、技术讲解、直播课件与录屏。",
+      "whenToUse": "用户要做 PPT 风格演示、翻页演示、幻灯片、slides、科普演示动画、录屏课件时使用"
+    },
+    {
+      "dir": "flowchart",
+      "name": "flowchart",
+      "description": "生成教育/科普类流程图、概念图、原理演示的动画 HTML 页面。用 CSS/SVG 绘制节点和连线，支持流动箭头、逐步出现、hover 高亮等动画效果，暗色科技风。内置 RNN/LSTM/GRU/MLP/Word2Vec/GPU 等 AI 模型可视化模板，适合技术讲解、视频科普、PPT 配图场景。",
+      "whenToUse": "用户要流程图、概念图、原理演示、示意图、神经网络/AI 模型可视化动画时使用"
+    },
+    {
+      "dir": "network-protocol-viz",
+      "name": "network-protocol-viz",
+      "description": "生成网络协议工作原理的可视化动画 HTML 页面，支持 TCP/IP、以太网帧、IPv4 数据报、路由、DHCP、HTTPS 等协议的图形化动态演示（数据包流动、抓包视角、逐层拆解）。",
+      "whenToUse": "用户要网络协议可视化、协议演示、TCP/HTTP/HTTPS/以太帧/IPv4/路由/DHCP 动画时使用"
+    },
+    {
+      "dir": "dynamic-archify",
+      "name": "dynamic-archify",
+      "description": "Create professional architecture, workflow, sequence, data-flow, and lifecycle/state diagrams as standalone animated HTML files with SVG graphics, flowing animation effects, a built-in dark/light theme toggle, and one-click export to PNG/JPEG/WebP/SVG/GIF/WebM. Accepts plain-language descriptions or pasted Mermaid code and lays the diagram out from scratch.",
+      "whenToUse": "用户要系统架构图、基础设施图、云架构、网络拓扑、技术工作流、审批流、CI/CD 流程、API 调用时序、数据管道、状态机、或 Mermaid 图美化/导出时使用"
+    },
+    {
+      "dir": "scholar-notes",
+      "name": "scholar-notes",
+      "description": "学霸笔记：生成手写笔记本风格的单文件 HTML 学习笔记，两种模板风格（经典手账/学术期刊），支持荧光笔、便利贴、手绘图示等元素，适合把技术内容、漏洞分析、知识总结转化为视觉精美的网页笔记。",
+      "whenToUse": "用户要学霸笔记、手写笔记、学习笔记、漏洞笔记、网页版笔记时使用"
+    },
+    {
+      "dir": "card-theater",
+      "name": "card-theater",
+      "description": "生成侧边栏叙事 + 3D 卡片轮播的演示动画 HTML 页面。支持滚动翻页、Coverflow 3D、Focus 展开等多种交互模式，内置模式切换、荧光笔高亮、水印图标等效果，适合协议流程演示、产品特性展示、分步讲解场景。",
+      "whenToUse": "用户要卡片剧场、卡片轮播、侧边栏叙事演示、coverflow 展示、分步讲解动画时使用"
+    },
+    {
+      "dir": "video-shot-demos",
+      "name": "video-shot-demos",
+      "description": "为视频/课程/解说文案制作「每镜头一个 HTML」的高完成度网页演示动画：统一的电影化播放器机制 + 每页完全不同的视觉风格（29 种风格轮换）+ 镜头推拉 + WebAudio 同步音效 + 角色表情吐槽，全屏录屏即成片，内容完全开放不设限。",
+      "whenToUse": "用户要给视频做演示动画网页、分镜 HTML、shot 页面、把口播稿/大纲做成动画、录一段网页动画时使用"
+    },
+    {
+      "dir": "phone-ui-demos",
+      "name": "phone-ui-demos",
+      "description": "把产品/知识点/文案做成「手机系统 UI 风格」的电影化网页演示动画——观众像在看一台真手机的精心编排录屏：锁屏通知、聊天、设置页、控制中心、App 界面逐镜头呈现，HyperOS/MIUI 级手感动效 + 虚拟时钟播放器，可全屏录屏当成片，内容完全开放不设限。",
+      "whenToUse": "用户要手机 UI 演示、手机录屏风格动画、App 演示网页、锁屏通知动画、系统 UI 风格演示页时使用"
+    }
+  ]
+}
