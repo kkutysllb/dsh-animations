@@ -191,14 +191,17 @@ Links: [README](./skills/phone-ui-demos/README.md) · [SKILL.md](./skills/phone-
 
 #### 方式一 · DSH 插件（推荐）
 
-`sh`
-# 从 dsh-plugins 镜像仓安装（子目录插件用路径安装）
-git clone git@github.com:kkutysllb/dsh-plugins.git
-dsh plugin --profile web add ./dsh-plugins/dsh-animations
+```sh
+# npm registry（推荐：版本可被插件管理检测，用户手动更新）
+# npm registry (recommended: version detection with manual updates)
+dsh plugin --profile web add dsh-animations
 
-# 或从独立仓直接安装
-dsh plugin --profile web add ./dsh-animations
-`
+# GitHub 直装 / install straight from GitHub
+dsh plugin --profile web add github:kkutysllb/dsh-animations
+
+# 或从 dsh-plugins 镜像仓（monorepo 子目录）/ or from the dsh-plugins monorepo
+dsh plugin --profile web add github:kkutysllb/dsh-plugins#dsh-animations
+```
 
 安装后重启 DSH 生效，你将获得：
 
@@ -210,26 +213,26 @@ dsh plugin --profile web add ./dsh-animations
 
 #### 方式二 · `skills` CLI（任意 Agent）
 
-`bash`
+```bash
 # 安装全部 Skill
 npx skills add https://github.com/kkutysllb/dsh-animations
 
 # 安装单个 Skill
 npx skills add https://github.com/kkutysllb/dsh-animations/tree/main/skills/ppt-animation
-`
+```
 
-#### 方式三 · Git Clone
+#### 方式三 · Git Clone（本地开发 / 魔改）
 
-`bash`
+```bash
 git clone https://github.com/kkutysllb/dsh-animations.git
 # 将 skills/<skill-name>/ 复制到你的 Agent 技能目录
-`
+```
 
 ### 快速上手
 
 安装后在 AI Agent 里直接说：
 
-`
+```
 用 ppt-animation 制作一个关于"HTTP协议"的演示，暗色主题，5页
 用 flowchart 演示 LSTM 的工作原理
 用 network-protocol-viz 可视化 TLS 1.3 握手
@@ -238,7 +241,7 @@ git clone https://github.com/kkutysllb/dsh-animations.git
 用 card-theater 演示 IPsec 数据流转过程，需要模式切换
 用 video-shot-demos 把这期视频的口播稿做成分镜演示动画，每个镜头一个 HTML
 用 phone-ui-demos 把这个 App 的功能做成手机录屏风格的演示动画，先出分镜表我确认
-`
+```
 
 ---
 
@@ -246,7 +249,7 @@ git clone https://github.com/kkutysllb/dsh-animations.git
 
 本仓按 DSH 标准 bundle 规范发布（对齐 `dsh-skills-bundle` 的零构建胶水形态 + `dsh-super-ppts` 的通告/预设模式）：
 
-`text`
+```text
 dsh-animations/
 ├── package.json            ← dsh bundle manifest（files 白名单 / scripts / dsh.bundle.patch）
 ├── cordis.patch.yml        ← bundle 层注册（id: dsh-animations）
@@ -264,17 +267,17 @@ dsh-animations/
 │   └── sync-to-dsh-plugins.mjs  ← 真源 → dsh-plugins 镜像同步（--check 对账）
 ├── web_animation/          ← 历史成品画廊（源仓展示物，不随插件分发）
 └── README.md
-`
+```
 
 **运行机制**：`cordis.patch.yml` 被 DSH 主进程物化进 profile → 激活 `entry.js` → 读取 `skills/manifest.json` 逐个 `ctx.skills.register()`（`resourceBase` 指向技能目录，正文引用的相对资产可解析）→ 向 systemPrompt 注入能力通告 section → 拷贝 Agent 预设到用户目录。
 
 **开发与发版**：
 
-`sh`
+```sh
 npm run smoke          # 插件冒烟（清单一致性 + apply 全流程 + 通告覆盖）
 npm run sync:mirror    # 镜像到 ../dsh-plugins/dsh-animations/（发版前置）
 npm run sync:check     # 对账断言：镜像与真源零差异
-`
+```
 
 三级分发链：**本仓（真源）→ [dsh-plugins](https://github.com/kkutysllb/dsh-plugins)（镜像收纳）→ KCoder `bundle/`（随包分发）**。改插件先改本仓，commit 后跑 `sync:mirror` 并在镜像仓提交推送。
 
