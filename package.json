@@ -1,6 +1,6 @@
 {
   "name": "dsh-animations",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DSH 原生动效技能包：8 个 HTML 动画技能（PPT 翻页演示 / 流程图 / 网络协议可视化 / 动态架构图 / 学霸笔记 / 卡片剧场 / 视频分镜 / 手机 UI 演示），激活即注册为 runtime skill，配「动画演示专家」Agent 预设。",
   "type": "module",
   "main": "entry.js",
