@@ -136,6 +136,26 @@ check('disposer 后 skills/sections 全部回收', registered.length === 0 && se
   check('patch 头注释说明 bundle 物化路径', patch.includes('dsh.bundle.patch'))
 }
 
+/* ═══ 5. client 面板技能目录对账（lib/client.js 内联目录 ↔ manifest）═══ */
+
+{
+  const client = readFileSync(join(packageRoot, 'lib/client.js'), 'utf8')
+  const pkg = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'))
+  const manifest = JSON.parse(readFileSync(join(packageRoot, 'skills/manifest.json'), 'utf8'))
+  const skills = Array.isArray(manifest) ? manifest : manifest.skills ?? []
+  const names = skills.map((s) => s.name)
+  check('client 内联技能目录覆盖全部技能名', names.every((n) => client.includes(`name: "${n}"`)))
+  check('package.json files 白名单含 lib/client.js', pkg.files.includes('lib/client.js'))
+  check('package.json dsh.client 声明 bundle 与 inject', pkg.dsh?.client?.bundle === './lib/client.js'
+    && Array.isArray(pkg.dsh?.client?.inject) && pkg.dsh.client.inject.length === 3)
+  check('package.json exports 暴露 ./client → lib/client.js', pkg.exports?.['./client'] === './lib/client.js')
+  check('client 走 __ModuleLoader__ 自注册形态', client.includes('__ModuleLoader__.load') && client.includes('exports.apply'))
+  // panellist/main 注册与软探测回退
+  check('client 注册 sidebar.panellist + main 双 slot（同 id anim-panel）',
+    client.includes('name: "sidebar.panellist"') && client.includes('name: "main"') && client.includes('"anim-panel"'))
+  check('client 软探测回退（try/catch 包裹注册）', client.includes('宿主无左侧栏 slot'))
+}
+
 /* ═══ 清理与结论 ═══ */
 
 rmSync(fakeHome, { recursive: true, force: true })
@@ -144,4 +164,4 @@ if (failures > 0) {
   console.log(`\x1b[31m冒烟失败：${failures} 项\x1b[0m`)
   process.exit(1)
 }
-console.log('\x1b[32m冒烟通过：清单 + host + 通告 + patch 全部检查项 ✓\x1b[0m')
+console.log('\x1b[32m冒烟通过：清单 + host + 通告 + patch + client 全部检查项 ✓\x1b[0m')
