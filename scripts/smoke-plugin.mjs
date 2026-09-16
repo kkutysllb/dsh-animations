@@ -10,7 +10,7 @@
  * 3. 能力通告文本覆盖全部 8 个技能名；
  * 4. cordis.patch.yml id 与 package.json name 对账。
  *
- * 隔离：HOME 重定向到临时目录，测试不触碰真实 ~/.dsh。
+ * 隔离：HOME 重定向到临时目录并清空 QILIN_HOME/DSH_HOME，测试不触碰真实用户数据。
  */
 import { mkdtempSync, rmSync, existsSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -62,6 +62,11 @@ for (const item of manifest.skills) {
 
 const fakeHome = mkdtempSync(join(tmpdir(), 'anim-smoke-'))
 process.env.HOME = fakeHome
+// 关键隔离：本机 shell 可能带着全局 QILIN_HOME/DSH_HOME（KCoder 桌面端把
+// DSH_HOME 指到 ~/.kcoder）。预设目录现在跟随宿主 home，不先删掉它们，
+// 冒烟就会读写真实用户数据。
+delete process.env.QILIN_HOME
+delete process.env.DSH_HOME
 
 const plugin = await import(join(packageRoot, 'entry.js'))
 check('entry.js 命名导出 name/inject/apply', plugin.name === 'dsh-animations' && Array.isArray(plugin.inject) && typeof plugin.apply === 'function')
@@ -93,6 +98,25 @@ check('每个 skill 注册带 resourceBase 目录', registered.every((s) => s.re
 check('每个 skill 内容已剥离 frontmatter', registered.every((s) => !s.content.startsWith('---\n')))
 check('预设已拷贝到重定向 HOME', existsSync(join(fakeHome, '.dsh', '.agent-presets', 'dsh-animations', 'preset.yml'))
   && existsSync(join(fakeHome, '.dsh', '.agent-presets', 'dsh-animations', 'agent.cordis.yml')))
+
+// 宿主 home 跟随环境变量：QiLin 注入 QILIN_HOME 并把 DSH_HOME 钉定到同一处，
+// DSH 只注入 DSH_HOME；两者同时存在时以 QILIN_HOME 为准。
+const qilinHome = mkdtempSync(join(tmpdir(), 'anim-qilin-home-'))
+const dshShadow = mkdtempSync(join(tmpdir(), 'anim-dsh-shadow-'))
+process.env.QILIN_HOME = qilinHome
+process.env.DSH_HOME = dshShadow
+const disposeQilin = plugin.apply(ctx, { announceToAgent: false })
+check('预设跟随 $QILIN_HOME（优先于同时存在的 $DSH_HOME）',
+  existsSync(join(qilinHome, '.agent-presets', 'dsh-animations', 'preset.yml')))
+delete process.env.QILIN_HOME
+const dshHome = mkdtempSync(join(tmpdir(), 'anim-dsh-home-'))
+process.env.DSH_HOME = dshHome
+const disposeDsh = plugin.apply(ctx, { announceToAgent: false })
+check('预设跟随 $DSH_HOME（无 $QILIN_HOME 时）',
+  existsSync(join(dshHome, '.agent-presets', 'dsh-animations', 'preset.yml')))
+delete process.env.DSH_HOME
+disposeQilin()
+disposeDsh()
 
 dispose()
 check('disposer 后 skills/sections 全部回收', registered.length === 0 && sections.length === 0)
@@ -159,6 +183,7 @@ check('disposer 后 skills/sections 全部回收', registered.length === 0 && se
 /* ═══ 清理与结论 ═══ */
 
 rmSync(fakeHome, { recursive: true, force: true })
+for (const dir of [qilinHome, dshShadow, dshHome]) rmSync(dir, { recursive: true, force: true })
 console.log('')
 if (failures > 0) {
   console.log(`\x1b[31m冒烟失败：${failures} 项\x1b[0m`)

@@ -12,7 +12,8 @@
 //    config.announceToAgent 关闭）。具体生成工作流由各技能的 SKILL.md
 //    承载，通告里不复制技能正文，避免上下文膨胀。
 // 3. 预设安装：把 presets/ 下的「动画演示专家」Agent 预设拷贝到
-//    ~/.dsh/.agent-presets/dsh-animations/，供 Web GUI 直接切换。
+//    <宿主 home>/.agent-presets/dsh-animations/（$QILIN_HOME → $DSH_HOME
+//    → ~/.dsh），供 Web GUI 直接切换。
 //
 // Cordis 契约（同 dsh-super-ppts 实装结论）：
 // - host 侧访问的每个 ctx 服务必须经命名导出 inject 声明——
@@ -50,10 +51,16 @@ function stripFrontmatter(raw) {
   return raw.slice(end + 5).replace(/^\n+/, '')
 }
 
+/** 宿主主目录：QiLin 注入 QILIN_HOME，DSH 注入 DSH_HOME，都缺省时仍是 ~/.dsh。 */
+function harnessHome() {
+  const fromEnv = process.env.QILIN_HOME ?? process.env.DSH_HOME
+  return fromEnv !== undefined && fromEnv.trim() !== '' ? fromEnv : join(homedir(), '.dsh')
+}
+
 /** 把 presets/ 下的预设文件拷贝到用户目录（幂等，缺失静默跳过）。 */
 function ensurePresetInstalled() {
   try {
-    const userPresetDir = resolve(homedir(), '.dsh', '.agent-presets', 'dsh-animations')
+    const userPresetDir = join(harnessHome(), '.agent-presets', 'dsh-animations')
     if (!existsSync(userPresetDir)) mkdirSync(userPresetDir, { recursive: true })
     const pluginPresets = resolve(ROOT, 'presets')
     for (const presetName of ['preset.yml', 'agent.cordis.yml']) {
