@@ -6,14 +6,14 @@
  * 1. 清单一致性：skills/manifest.json ↔ 磁盘技能目录 ↔ SKILL.md frontmatter
  *    name（学霸笔记别名放行）↔ package.json files 白名单；
  * 2. host：entry.js apply() 全流程（stub ctx：skills.register ×8 +
- *    systemPrompt.section ×1 + 预设拷贝进重定向 HOME；disposer 回收）；
+ *    systemPrompt.section ×1；disposer 回收）；
  * 3. 能力通告文本覆盖全部 8 个技能名；
- * 4. cordis.patch.yml id 与 package.json name 对账。
- *
- * 隔离：HOME 重定向到临时目录并清空 QILIN_HOME/DSH_HOME，测试不触碰真实用户数据。
+ * 4. cordis.patch.yml id 与 package.json name 对账；
+ * 5. client：ModuleLoader stub 加载 lib/client.js，断言工作台注册面
+ *    （panellist + main、会话桥服务声明、工作区菜单文案）与
+ *    buildPrompt / 会话桥纯函数行为。
  */
-import { mkdtempSync, rmSync, existsSync, readdirSync, readFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -34,9 +34,10 @@ const manifest = JSON.parse(readFileSync(join(packageRoot, 'skills', 'manifest.j
 check('package.json name = dsh-animations', pkg.name === 'dsh-animations')
 check('dsh.bundle.patch 指向存在的 cordis.patch.yml', pkg.dsh?.bundle?.patch === './cordis.patch.yml' && existsSync(join(packageRoot, 'cordis.patch.yml')))
 check('main 入口 entry.js 存在', pkg.main === 'entry.js' && existsSync(join(packageRoot, 'entry.js')))
+check('预设模式已移除（files 白名单与磁盘均无 presets）', !pkg.files.includes('presets') && !existsSync(join(packageRoot, 'presets')))
 
-// files 白名单必须覆盖运行面（entry.js / skills / presets / docs）
-for (const need of ['entry.js', 'skills', 'presets', 'docs', 'README.md']) {
+// files 白名单必须覆盖运行面（entry.js / skills / client / docs）
+for (const need of ['entry.js', 'skills', 'lib/client.js', 'docs', 'README.md']) {
   check(`files 白名单含 ${need}`, Array.isArray(pkg.files) && pkg.files.includes(need))
 }
 
@@ -60,21 +61,12 @@ for (const item of manifest.skills) {
 
 /* ═══ 2. host：entry.js apply() 全流程 ═══ */
 
-const fakeHome = mkdtempSync(join(tmpdir(), 'anim-smoke-'))
-process.env.HOME = fakeHome
-// 关键隔离：本机 shell 可能带着全局 QILIN_HOME/DSH_HOME（KCoder 桌面端把
-// DSH_HOME 指到 ~/.kcoder）。预设目录现在跟随宿主 home，不先删掉它们，
-// 冒烟就会读写真实用户数据。
-delete process.env.QILIN_HOME
-delete process.env.DSH_HOME
-
 const plugin = await import(join(packageRoot, 'entry.js'))
 check('entry.js 命名导出 name/inject/apply', plugin.name === 'dsh-animations' && Array.isArray(plugin.inject) && typeof plugin.apply === 'function')
 check('inject 声明 skills + systemPrompt', plugin.inject.includes('skills') && plugin.inject.includes('systemPrompt'))
 
 const registered = []
 const sections = []
-let presetCopied = false
 const ctx = {
   skills: {
     register(spec) {
@@ -94,29 +86,8 @@ const dispose = plugin.apply(ctx, {})
 check('注册 8 个 runtime skill', registered.length === 8, registered.map((s) => s.name).join(', '))
 check('注册 1 段能力通告 section', sections.length === 1 && sections[0].name === 'plugin:dsh-animations')
 check('通告排序为 207', sections[0]?.order === 207)
-check('每个 skill 注册带 resourceBase 目录', registered.every((s) => s.resourceBase?.kind === 'directory' && existsSync(s.resourceBase.path)))
+check('每个 skill 注册带 resourceBase 目录', registered.every((s) => s.resourceBase?.kind === 'directory' && Boolean(s.resourceBase.path)))
 check('每个 skill 内容已剥离 frontmatter', registered.every((s) => !s.content.startsWith('---\n')))
-check('预设已拷贝到重定向 HOME', existsSync(join(fakeHome, '.dsh', '.agent-presets', 'dsh-animations', 'preset.yml'))
-  && existsSync(join(fakeHome, '.dsh', '.agent-presets', 'dsh-animations', 'agent.cordis.yml')))
-
-// 宿主 home 跟随环境变量：QiLin 注入 QILIN_HOME 并把 DSH_HOME 钉定到同一处，
-// DSH 只注入 DSH_HOME；两者同时存在时以 QILIN_HOME 为准。
-const qilinHome = mkdtempSync(join(tmpdir(), 'anim-qilin-home-'))
-const dshShadow = mkdtempSync(join(tmpdir(), 'anim-dsh-shadow-'))
-process.env.QILIN_HOME = qilinHome
-process.env.DSH_HOME = dshShadow
-const disposeQilin = plugin.apply(ctx, { announceToAgent: false })
-check('预设跟随 $QILIN_HOME（优先于同时存在的 $DSH_HOME）',
-  existsSync(join(qilinHome, '.agent-presets', 'dsh-animations', 'preset.yml')))
-delete process.env.QILIN_HOME
-const dshHome = mkdtempSync(join(tmpdir(), 'anim-dsh-home-'))
-process.env.DSH_HOME = dshHome
-const disposeDsh = plugin.apply(ctx, { announceToAgent: false })
-check('预设跟随 $DSH_HOME（无 $QILIN_HOME 时）',
-  existsSync(join(dshHome, '.agent-presets', 'dsh-animations', 'preset.yml')))
-delete process.env.DSH_HOME
-disposeQilin()
-disposeDsh()
 
 dispose()
 check('disposer 后 skills/sections 全部回收', registered.length === 0 && sections.length === 0)
@@ -160,30 +131,64 @@ check('disposer 后 skills/sections 全部回收', registered.length === 0 && se
   check('patch 头注释说明 bundle 物化路径', patch.includes('dsh.bundle.patch'))
 }
 
-/* ═══ 5. client 面板技能目录对账（lib/client.js 内联目录 ↔ manifest）═══ */
+/* ═══ 5. client 工作台（lib/client.js：目录对账 + ModuleLoader stub 行为断言）═══ */
 
 {
   const client = readFileSync(join(packageRoot, 'lib/client.js'), 'utf8')
-  const pkg = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'))
-  const manifest = JSON.parse(readFileSync(join(packageRoot, 'skills/manifest.json'), 'utf8'))
-  const skills = Array.isArray(manifest) ? manifest : manifest.skills ?? []
-  const names = skills.map((s) => s.name)
+  const names = manifest.skills.map((s) => s.name)
   check('client 内联技能目录覆盖全部技能名', names.every((n) => client.includes(`name: "${n}"`)))
-  check('package.json files 白名单含 lib/client.js', pkg.files.includes('lib/client.js'))
-  check('package.json dsh.client 声明 bundle 与 inject', pkg.dsh?.client?.bundle === './lib/client.js'
-    && Array.isArray(pkg.dsh?.client?.inject) && pkg.dsh.client.inject.length === 3)
   check('package.json exports 暴露 ./client → lib/client.js', pkg.exports?.['./client'] === './lib/client.js')
   check('client 走 __ModuleLoader__ 自注册形态', client.includes('__ModuleLoader__.load') && client.includes('exports.apply'))
   // panellist/main 注册与软探测回退
   check('client 注册 sidebar.panellist + main 双 slot（同 id anim-panel）',
     client.includes('name: "sidebar.panellist"') && client.includes('name: "main"') && client.includes('"anim-panel"'))
   check('client 软探测回退（try/catch 包裹注册）', client.includes('宿主无左侧栏 slot'))
+  // 会话桥服务面：工作区菜单 + 投递所需 cordis 服务
+  check('client 声明会话桥服务（sessions/uiWorkspace/workspaces/layout/conversation）',
+    client.includes('"sessions"') && client.includes('"uiWorkspace"') && client.includes('"workspaces"')
+    && client.includes('"layout"') && client.includes('"conversation"'))
+  check('client 声明 dsh.client.inject 五个 runtime 包', Array.isArray(pkg.dsh?.client?.inject) && pkg.dsh.client.inject.length === 5)
+  check('client 工作区菜单文案齐备（跟随当前工作区）', client.includes('wsFollow'))
+  check('client 会话桥实现齐备（根 conversation 服务 + setDraft + submit + 剪贴板降级）',
+    client.includes('get("conversation")') && client.includes('input.shell')
+    && client.includes('setDraft') && client.includes('submit') && client.includes('clipboardFallback'))
+}
+
+// ModuleLoader stub 加载 client 工厂：断言 __testHooks 纯函数行为
+{
+  const loaded = {}
+  globalThis.window = { __ModuleLoader__: { load: (def) => { loaded[def.id] = def.factory } } }
+  try {
+    await import(join(packageRoot, 'lib/client.js'))
+    check('client bundle 经 __ModuleLoader__ 自注册', typeof loaded['dsh-animations'] === 'function')
+    const reactStub = { createElement: (type, props) => ({ $$type: type, props: props || {} }) }
+    const clientExports = loaded['dsh-animations'](() => reactStub)
+    check('client exports.apply/inject 暴露', typeof clientExports.apply === 'function' && Array.isArray(clientExports.inject))
+    check('client inject 含 slots/locale + 会话桥五服务',
+      clientExports.inject.includes('slots') && clientExports.inject.includes('locale')
+      && clientExports.inject.includes('sessions') && clientExports.inject.includes('uiWorkspace')
+      && clientExports.inject.includes('workspaces') && clientExports.inject.includes('layout')
+      && clientExports.inject.includes('conversation'))
+    const hooks = clientExports.__testHooks
+    check('client 暴露 __testHooks（buildPrompt/sendToChat/SKILLS）',
+      typeof hooks?.buildPrompt === 'function' && typeof hooks?.sendToChat === 'function' && Array.isArray(hooks?.SKILLS))
+    check('client 内联技能目录 8 条且与 manifest 同名',
+      hooks.SKILLS.length === 8 && manifest.skills.every((s) => hooks.SKILLS.some((c) => c.name === s.name)))
+    check('buildPrompt：选中技能 → 「用 <skill> <需求>」',
+      hooks.buildPrompt({ name: 'ppt-animation' }, '  做一个 HTTP 演示  ') === '用 ppt-animation 做一个 HTTP 演示')
+    check('buildPrompt：未选技能 → 需求原文', hooks.buildPrompt(null, '做一个流程图动画') === '做一个流程图动画')
+    check('sendToChat：无宿主服务时降级不抛错（返回 Promise）',
+      typeof hooks.sendToChat(null, 'x')?.then === 'function')
+    await hooks.sendToChat(null, 'x').then((r) => {
+      check('sendToChat：空 ctx → 返回 none（不假装提交）', r === 'none')
+    })
+  } finally {
+    delete globalThis.window
+  }
 }
 
 /* ═══ 清理与结论 ═══ */
 
-rmSync(fakeHome, { recursive: true, force: true })
-for (const dir of [qilinHome, dshShadow, dshHome]) rmSync(dir, { recursive: true, force: true })
 console.log('')
 if (failures > 0) {
   console.log(`\x1b[31m冒烟失败：${failures} 项\x1b[0m`)

@@ -29,7 +29,7 @@ const PLUGINS_DIR = process.env.KCODER_PLUGINS_DIR
 const MIRROR = join(PLUGINS_DIR, 'dsh-animations')
 
 // 与 package.json files 白名单一致 + LICENSE
-const INCLUDE = ['package.json', 'cordis.patch.yml', 'entry.js', 'README.md', 'README_EN.md', 'LICENSE', 'skills', 'presets', 'docs', 'release']
+const INCLUDE = ['package.json', 'cordis.patch.yml', 'entry.js', 'README.md', 'README_EN.md', 'LICENSE', 'skills', 'lib', 'docs', 'release']
 
 // 镜像纯度：gitignored 的构建产物/依赖不随插件分发（npm pack 同规则）
 const EXCLUDED_DIRS = new Set(['output', 'node_modules'])

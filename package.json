@@ -1,7 +1,7 @@
 {
   "name": "dsh-animations",
-  "version": "1.1.0",
-  "description": "DSH 原生动效技能包：8 个 HTML 动画技能（PPT 翻页演示 / 流程图 / 网络协议可视化 / 动态架构图 / 学霸笔记 / 卡片剧场 / 视频分镜 / 手机 UI 演示），激活即注册为 runtime skill，配「动画演示专家」Agent 预设。",
+  "version": "1.2.0",
+  "description": "DSH 原生动效技能包：8 个 HTML 动画技能（PPT 翻页演示 / 流程图 / 网络协议可视化 / 动态架构图 / 学霸笔记 / 卡片剧场 / 视频分镜 / 手机 UI 演示），激活即注册为 runtime skill，Web GUI 左侧栏内置「动效技能库」工作台面板（技能选择 + 工作区菜单 + 一键投递会话）。",
   "type": "module",
   "main": "entry.js",
   "exports": {
@@ -15,7 +15,6 @@
     "lib/client.js",
     "cordis.patch.yml",
     "skills",
-    "presets",
     "docs",
     "release",
     "README.md",
@@ -30,7 +29,9 @@
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-slots"
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-workspace"
       ],
       "platform": "web"
     }

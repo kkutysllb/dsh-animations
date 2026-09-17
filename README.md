@@ -27,7 +27,7 @@
 
 | 形态 | 谁在用 | 怎么装 |
 |---|---|---|
-| 🧩 **DSH 标准插件** | DSH / KCoder 用户 | [`dsh plugin add`](#安装)，激活即注册 8 个 runtime skill + 「动画演示专家」Agent 预设 |
+| 🧩 **DSH 标准插件** | DSH / KCoder 用户 | [`dsh plugin add`](#安装)，激活即注册 8 个 runtime skill + Web GUI「动效技能库」工作台 |
 | 🎯 **通用 Agent Skills** | Claude Code / Cursor / Codex CLI / WorkBuddy | [`npx skills add`](#安装) 或手动复制 `skills/<name>/` |
 
 **技能矩阵**：
@@ -207,7 +207,7 @@ dsh plugin --profile web add github:kkutysllb/dsh-plugins#dsh-animations
 
 - **8 个 runtime skill**：会话中直接说「用 card-theater 演示……」即可触发（项目级同名技能可覆盖）；
 - **能力通告**：system prompt 自动注入一段能力矩阵说明，Agent 知道何时路由到哪个技能；
-- **「动画演示专家」Agent 预设**：Web GUI 可一键切换的专职动效交付 Agent（自动安装到 `~/.dsh/.agent-presets/dsh-animations/`）。
+- **「动效技能库」工作台**（Web GUI，dsh 0.1.5+）：左侧栏图标行新增动效技能库入口，点击进入交互面板——**工作区菜单**（跟随当前工作区或指定目标工作区）、技能卡片单选、一句话需求描述，一键「发送到对话」自动定位/新建会话并提交指令（宿主服务不可达时自动降级为复制到剪贴板）。
 
 配置开关（cordis.yml patch 可调）：`enabled`（默认 true）、`announceToAgent`（默认 true）。
 
@@ -247,29 +247,30 @@ git clone https://github.com/kkutysllb/dsh-animations.git
 
 ### 插件形态（面向 DSH 用户与开发者）
 
-本仓按 DSH 标准 bundle 规范发布（对齐 `dsh-skills-bundle` 的零构建胶水形态 + `dsh-super-ppts` 的通告/预设模式）：
+本仓按 DSH 标准 bundle 规范发布（对齐 `dsh-skills-bundle` 的零构建胶水形态 + `dsh-super-ppts` 的通告/工作台模式）：
 
 ```text
 dsh-animations/
 ├── package.json            ← dsh bundle manifest（files 白名单 / scripts / dsh.bundle.patch）
 ├── cordis.patch.yml        ← bundle 层注册（id: dsh-animations）
-├── entry.js                ← 胶水插件（零依赖 ESM）：注册 skills + 通告 + 预设
+├── entry.js                ← 胶水插件（零依赖 ESM）：注册 skills + 通告
+├── lib/
+│   └── client.js           ← Web GUI client 扩展：左侧栏「动效技能库」工作台（工作区菜单 + 技能单选 + 会话桥投递）
 ├── skills/
 │   ├── manifest.json       ← 技能注册清单（单一事实源，smoke 对账）
 │   ├── <skill>/SKILL.md    ← 技能正文（frontmatter 剥离后注册）
 │   └── <skill>/assets/     ← 模板资产（resourceBase 指向技能目录）
-├── presets/                ← 「动画演示专家」Agent 预设（preset.yml + agent.cordis.yml）
 ├── docs/
 │   ├── examples/           ← 案例示例 HTML（本页展示图的可复现源）
 │   └── screenshots/        ← 案例示例图
 ├── scripts/
-│   ├── smoke-plugin.mjs    ← 冒烟：清单对账 + apply 全流程 + 通告覆盖
+│   ├── smoke-plugin.mjs    ← 冒烟：清单对账 + apply 全流程 + 通告覆盖 + client 工作台断言
 │   └── sync-to-dsh-plugins.mjs  ← 真源 → dsh-plugins 镜像同步（--check 对账）
 ├── web_animation/          ← 历史成品画廊（源仓展示物，不随插件分发）
 └── README.md
 ```
 
-**运行机制**：`cordis.patch.yml` 被 DSH 主进程物化进 profile → 激活 `entry.js` → 读取 `skills/manifest.json` 逐个 `ctx.skills.register()`（`resourceBase` 指向技能目录，正文引用的相对资产可解析）→ 向 systemPrompt 注入能力通告 section → 拷贝 Agent 预设到用户目录。
+**运行机制**：`cordis.patch.yml` 被 DSH 主进程物化进 profile → 激活 `entry.js` → 读取 `skills/manifest.json` 逐个 `ctx.skills.register()`（`resourceBase` 指向技能目录，正文引用的相对资产可解析）→ 向 systemPrompt 注入能力通告 section。Web 侧 `lib/client.js` 经 `__ModuleLoader__` 自注册，向左侧栏 `sidebar.panellist` 图标行与 `main` keyed 主面板挂载「动效技能库」工作台。
 
 **开发与发版**：
 
