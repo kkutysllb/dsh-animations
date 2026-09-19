@@ -228,6 +228,43 @@ git clone https://github.com/kkutysllb/dsh-animations.git
 # 将 skills/<skill-name>/ 复制到你的 Agent 技能目录
 ```
 
+### QiLin（麒麟）双通道适配（v1.2.1 起）
+
+manifest 同时声明 `qilin` 与 `dsh` 两个通道的 `bundle.patch` / `client`：
+QiLin（dsh 0.1.6-alpha.2 合并后）的插件管理器只认原生键
+`qilin.bundle.patch`（缺失会报「没有声明组合包」），DSH 宿主仍读
+`dsh.*`；两通道指向同一份 `cordis.patch.yml` 与 client 交付物，
+行为完全一致。
+
+### 麒麟（QiLin）引擎安装
+
+```bash
+# npm registry（推荐：版本可被插件管理检测，用户手动更新）
+qilin plugin --profile qilin add dsh-animations
+
+# GitHub 直装 / install straight from GitHub
+qilin plugin --profile qilin add github:kkutysllb/dsh-animations
+```
+
+装完在 QiLin 设置 → 插件里可见、可启停；8 个动效技能注册进工作台
+技能面，侧栏面板随插件启停。
+
+#### 注意事项（QiLin）
+
+- **必须经 `qilin plugin add` 装进 profile**：包会落到 profile 私有的
+  `~/.qilin/profiles/<name>/node_modules`——裸包名原生解析的第一跳。
+  **不要**手工把包目录放进共享的 `~/.qilin/profiles/node_modules`：
+  dsh alpha.2 合并后的 runtime+enforce 解析把该目录划为安装保留区，
+  放那里的 bundle 层包激活时直接 `failed to import`。
+- **引擎版本**：运行需要带 dsh 兼容层的 QiLin 3.0.0+；插件**管理**
+  （设置页展示/启停）要求 3.0.2+（alpha.2 合并后只认
+  `qilin.bundle.patch` 原生键）。
+- **运行时解析**：dsh alpha.2 起依赖解析默认运行时模式（PR #4471），
+  插件运行期导入由 profile 安装图经进程内 generation 解析；本仓
+  host 侧零 npm 运行时依赖，天然兼容。
+- **技能资产可选依赖**：技能资产（dynamic-archify 的 ajv 校验器等）的
+  可选依赖属生成期现场安装（SKILL.md 指引），与插件运行时解析无关。
+
 ### 快速上手
 
 安装后在 AI Agent 里直接说：

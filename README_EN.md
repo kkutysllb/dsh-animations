@@ -442,6 +442,51 @@ git clone https://github.com/kkutysllb/dsh-animations.git
 
 Grab a `.zip` from the [Releases page](https://github.com/kkutysllb/KAnimation/releases), unzip, and copy to your agent's skills directory.
 
+### QiLin (麒麟) Dual-Channel Adaptation (since v1.2.1)
+
+The manifest declares `bundle.patch` / `client` for both the `qilin` and
+`dsh` channels: after merging dsh 0.1.6-alpha.2, QiLin's plugin manager
+only recognizes the native key `qilin.bundle.patch` (a missing key reports
+"declares no qilin.bundle"), while the DSH host keeps reading `dsh.*`.
+Both channels point to the same `cordis.patch.yml` and client deliverables —
+behavior is fully identical.
+
+### Installing on the QiLin (麒麟) Engine
+
+```bash
+# npm registry (recommended: version detection with manual updates)
+qilin plugin --profile qilin add dsh-animations
+
+# install straight from GitHub
+qilin plugin --profile qilin add github:kkutysllb/dsh-animations
+```
+
+After install the plugin shows up under QiLin Settings → Plugins (enable /
+disable at will); the 8 animation skills register into the workbench skills
+panel, and the sidebar panel follows the plugin's enable state.
+
+#### Notes (QiLin)
+
+- **Must be installed into a profile via `qilin plugin add`**: the package
+  lands in the profile-private `~/.qilin/profiles/<name>/node_modules` —
+  the first hop of bare-package native resolution. Do **not** manually drop
+  the package dir into the shared `~/.qilin/profiles/node_modules`: after
+  the dsh alpha.2 merge, runtime+enforce resolution reserves that directory
+  for the installer, and bundle-layer packages placed there fail to activate
+  with `failed to import`.
+- **Engine version**: running requires QiLin 3.0.0+ with the dsh compat
+  layer; plugin **management** (settings-page listing / enable-disable)
+  requires 3.0.2+ (post alpha.2 merge it only recognizes the native
+  `qilin.bundle.patch` key).
+- **Runtime resolution**: since dsh alpha.2, dependency resolution defaults
+  to runtime mode (PR #4471) — plugin runtime imports resolve through the
+  profile install graph via in-process generation; this repo has zero npm
+  runtime dependencies on the host side, so it is compatible by nature.
+- **Optional skill-asset dependencies**: optional dependencies of skill
+  assets (e.g. dynamic-archify's ajv validator) are installed on demand at
+  generation time (per SKILL.md guidance), unrelated to the plugin's
+  runtime resolution.
+
 ### Compatibility
 
 | Agent / Runtime | Skill directory | Status |
