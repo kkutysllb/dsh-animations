@@ -11,7 +11,14 @@
  * 4. cordis.patch.yml id 与 package.json name 对账；
  * 5. client：ModuleLoader stub 加载 lib/client.js，断言工作台注册面
  *    （panellist + main、会话桥服务声明、工作区菜单文案）与
- *    buildPrompt / 会话桥纯函数行为。
+ *    buildPrompt / 会话桥纯函数行为；
+ * 6. 0.1.7 契约层哨兵：死包 dsh-client-runtime 移除 / 两通道 inject 冻结
+ *    4 引擎包 / peerDependencies 五条含 prerelease 范围且全 optional /
+ *    发版记录对账；
+ * 7. 会话桥 v4 断言：mainView 选择态判定、fillDraft 同口径壳解析、
+ *    setDraft→submit 闭环、无 submit 绝不报 submitted、挂载重试、
+ *    sessions.using 持引用、create+openSession 新会话路径、
+ *    openWorkspace(beforeOpen) 落点、旧宿主面（≤0.1.6）回归。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
@@ -147,20 +154,22 @@ check('disposer 后 skills/sections 全部回收', registered.length === 0 && se
   check('client 声明会话桥服务（sessions/uiWorkspace/workspaces/layout/conversation）',
     client.includes('"sessions"') && client.includes('"uiWorkspace"') && client.includes('"workspaces"')
     && client.includes('"layout"') && client.includes('"conversation"'))
-  check('client 声明 dsh.client.inject 五个 runtime 包', Array.isArray(pkg.dsh?.client?.inject) && pkg.dsh.client.inject.length === 5)
   check('client 工作区菜单文案齐备（跟随当前工作区）', client.includes('wsFollow'))
-  check('client 会话桥实现齐备（根 conversation 服务 + setDraft + submit + 剪贴板降级）',
-    client.includes('get("conversation")') && client.includes('input.shell')
-    && client.includes('setDraft') && client.includes('submit') && client.includes('clipboardFallback'))
+  check('client 会话桥 v4 实现齐备（根 conversation 服务 + fillDraft 同口径壳解析 + setDraft + submit + 剪贴板降级）',
+    client.includes('get("conversation")') && client.includes('input.for')
+    && client.includes('setDraft') && client.includes('submit') && client.includes('clipboardFallback')
+    && client.includes('sendToChatV4'))
 }
 
 // ModuleLoader stub 加载 client 工厂：断言 __testHooks 纯函数行为
+let clientFactory = null
 {
   const loaded = {}
   globalThis.window = { __ModuleLoader__: { load: (def) => { loaded[def.id] = def.factory } } }
   try {
     await import(join(packageRoot, 'lib/client.js'))
     check('client bundle 经 __ModuleLoader__ 自注册', typeof loaded['dsh-animations'] === 'function')
+    clientFactory = loaded['dsh-animations']
     const reactStub = { createElement: (type, props) => ({ $$type: type, props: props || {} }) }
     const clientExports = loaded['dsh-animations'](() => reactStub)
     check('client exports.apply/inject 暴露', typeof clientExports.apply === 'function' && Array.isArray(clientExports.inject))
@@ -170,20 +179,208 @@ check('disposer 后 skills/sections 全部回收', registered.length === 0 && se
       && clientExports.inject.includes('workspaces') && clientExports.inject.includes('layout')
       && clientExports.inject.includes('conversation'))
     const hooks = clientExports.__testHooks
-    check('client 暴露 __testHooks（buildPrompt/sendToChat/SKILLS）',
-      typeof hooks?.buildPrompt === 'function' && typeof hooks?.sendToChat === 'function' && Array.isArray(hooks?.SKILLS))
+    check('client 暴露 __testHooks（buildPrompt/sendToChatV4/桥基元/SKILLS）',
+      typeof hooks?.buildPrompt === 'function' && typeof hooks?.sendToChatV4 === 'function'
+      && typeof hooks?.currentSessionId === 'function' && typeof hooks?.inputShellFor === 'function'
+      && Array.isArray(hooks?.SKILLS))
     check('client 内联技能目录 8 条且与 manifest 同名',
       hooks.SKILLS.length === 8 && manifest.skills.every((s) => hooks.SKILLS.some((c) => c.name === s.name)))
     check('buildPrompt：选中技能 → 「用 <skill> <需求>」',
       hooks.buildPrompt({ name: 'ppt-animation' }, '  做一个 HTTP 演示  ') === '用 ppt-animation 做一个 HTTP 演示')
     check('buildPrompt：未选技能 → 需求原文', hooks.buildPrompt(null, '做一个流程图动画') === '做一个流程图动画')
-    check('sendToChat：无宿主服务时降级不抛错（返回 Promise）',
-      typeof hooks.sendToChat(null, 'x')?.then === 'function')
-    await hooks.sendToChat(null, 'x').then((r) => {
-      check('sendToChat：空 ctx → 返回 none（不假装提交）', r === 'none')
+    check('sendToChatV4：无宿主服务时降级不抛错（返回 Promise）',
+      typeof hooks.sendToChatV4(null, 'x')?.then === 'function')
+    await hooks.sendToChatV4(null, 'x').then((r) => {
+      check('sendToChatV4：空 ctx → 返回 none（不假装提交）', r === 'none')
     })
   } finally {
     delete globalThis.window
+  }
+}
+
+/* ═══ 6. 0.1.7 契约层哨兵（manifest）═══ */
+
+{
+  const DEAD_PKG = '@deepseek-ai/dsh-client-runtime'
+  const FROZEN = [
+    '@deepseek-ai/dsh-client-locale',
+    '@deepseek-ai/dsh-client-ui-slots',
+    '@deepseek-ai/dsh-client-ui-conversation',
+    '@deepseek-ai/dsh-client-ui-workspace',
+  ]
+  for (const channel of ['dsh', 'qilin']) {
+    const inject = pkg[channel]?.client?.inject
+    check(`${channel}.client.inject 移除死包（0.1.7 已删 ${DEAD_PKG}）`, Array.isArray(inject) && !inject.includes(DEAD_PKG))
+    check(`${channel}.client.inject 冻结为 4 引擎包`, Array.isArray(inject) && inject.length === 4 && FROZEN.every((p) => inject.includes(p)))
+    check(`${channel}.client.bundle / bundle.patch 指向不变`,
+      pkg[channel]?.client?.bundle === './lib/client.js' && pkg[channel]?.bundle?.patch === './cordis.patch.yml')
+  }
+  // peer 三则（0.1.7 插件版本兼容门只读 peerDependencies；optional 是安装面护栏）
+  const PEER_RANGE = '>=0.1.0-rc.5 <0.2.0'
+  const peers = pkg.peerDependencies ?? {}
+  const peerNames = Object.keys(peers)
+  check('peerDependencies 声明 @deepseek-ai/dsh + 4 引擎包（共 5 条）',
+    peerNames.length === 5 && ['@deepseek-ai/dsh', ...FROZEN].every((p) => peerNames.includes(p)))
+  check(`peerDependencies 范围均为 ${PEER_RANGE}（覆盖 0.1.x 含 prerelease）`,
+    peerNames.every((p) => peers[p] === PEER_RANGE))
+  const meta = pkg.peerDependenciesMeta ?? {}
+  check('peerDependenciesMeta 全部 optional（防 pnpm 自动安装把引擎树拉进 profile）',
+    peerNames.every((p) => meta[p]?.optional === true))
+  // 版本对账：发版记录随包版本走
+  check(`发版记录对账：release/v${pkg.version}.md 存在`,
+    existsSync(join(packageRoot, 'release', `v${pkg.version}.md`)))
+}
+
+/* ═══ 7. 会话桥 v4 断言（0.1.7 契约面）═══ */
+
+{
+  const reactStub = { createElement: (type, props) => ({ $$type: type, props: props || {} }) }
+  const hooks = clientFactory(() => reactStub).__testHooks
+  const { sendToChatV4, currentSessionId, inputShellFor } = hooks
+
+  // —— 选择态判定（mainView 口径）——
+  check('currentSessionId：0.1.7 mainView 持有者即当前会话（current 字段已删）',
+    currentSessionId({ list: { getSnapshot: () => ({ byId: { a: { retainedBy: { other: 2 } }, b: { retainedBy: { mainView: 1 } } } }) } }) === 'b')
+  check('currentSessionId：mainView=0 不算选择态',
+    currentSessionId({ list: { getSnapshot: () => ({ byId: { a: { retainedBy: { mainView: 0 } } } }) } }) === null)
+  check('currentSessionId：旧宿主（≤0.1.6）回退 list.current',
+    currentSessionId({ list: { getSnapshot: () => ({ current: 'legacy-1' }) } }) === 'legacy-1')
+  check('currentSessionId：无列表服务返回 null', currentSessionId(null) === null)
+
+  // —— 输入壳解析（uiConversation.fillDraft 同口径）——
+  const mkShell = () => ({ drafts: [], submitted: 0, setDraft(t) { this.drafts.push(t) }, submit() { this.submitted += 1 } })
+  // 默认带 mainView 当前会话 s1（sendToChatV4 的落点前提）；显式传 list 可覆写（如无会话场景）
+  const withList = (over) => Object.assign({
+    list: { getSnapshot: () => ({ byId: { s1: { retainedBy: { mainView: 1 } } } }) },
+  }, over)
+
+  {
+    const shell = mkShell()
+    const ctx = { get: (name) => (name === 'conversation' ? { input: { for: (actx) => (actx && actx.tag === 'ok' ? shell : null) } } : undefined) }
+    check('inputShellFor：scope(actx) → conversation.input.for(actx)（fillDraft 同口径）',
+      inputShellFor(ctx, withList({ scope: () => ({ tag: 'ok' }) }), 's1') === shell)
+  }
+  {
+    const shell = mkShell()
+    const ctx = { get: (name) => (name === 'conversation' ? { input: { for: (actx) => (actx && actx.tag === 'bound' ? shell : null) } } : undefined) }
+    check('inputShellFor：scope 未持有 → binding(id).ctx 兜底',
+      inputShellFor(ctx, withList({ scope: () => undefined, binding: (id) => (id === 's1' ? { ctx: { tag: 'bound' } } : undefined) }), 's1') === shell)
+  }
+  {
+    const ctx = { get: (name) => (name === 'conversation' ? { input: { for: () => ({ submit() {} }) } } : undefined) }
+    check('inputShellFor：壳无 setDraft → null（不收残壳）',
+      inputShellFor(ctx, withList({ scope: () => ({}) }), 's1') === null)
+  }
+  check('inputShellFor：未 retain 的 generation → null（0.1.7 scope/binding 收紧面）',
+    inputShellFor({ get: () => undefined }, withList({ scope: () => undefined, binding: () => undefined }), 's1') === null)
+
+  // —— v4 全链：setDraft → submit 闭环（using 持引用）——
+  {
+    const shell = mkShell()
+    const usingCalls = []
+    const sessions = withList({
+      scope: () => ({ tag: 'ok' }),
+      using: (target, options, op) => { usingCalls.push({ target, options }); return Promise.resolve(op({})) },
+    })
+    const ctx = {
+      sessions,
+      layout: { selectPanel() {} },
+      get: (name) => (name === 'conversation' ? { input: { for: () => shell } } : undefined),
+    }
+    const result = await sendToChatV4(ctx, '用 flowchart 测', undefined)
+    check('sendToChatV4：mainView 定位 → setDraft + submit → submitted', result === 'submitted' && shell.drafts[0] === '用 flowchart 测' && shell.submitted === 1)
+    check('sendToChatV4：递送期 sessions.using 持引用（source=dsh-animations）',
+      usingCalls.length === 1 && usingCalls[0].target === 's1' && usingCalls[0].options.source === 'dsh-animations')
+  }
+
+  // —— 无 submit 绝不报 submitted（降级剪贴板）——
+  {
+    const shell = { drafts: [], setDraft(t) { this.drafts.push(t) } } // 无 submit
+    const sessions = withList({ scope: () => ({}) })
+    const ctx = { sessions, layout: { selectPanel() {} }, get: (name) => (name === 'conversation' ? { input: { for: () => shell } } : undefined) }
+    let navStubbed = false
+    const navDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+    try {
+      Object.defineProperty(globalThis, 'navigator', { value: { clipboard: { writeText: () => Promise.resolve() } }, configurable: true })
+      navStubbed = true
+    } catch (stubError) { /* Node 无 navigator：按 none 口径断言 */ }
+    try {
+      const result = await sendToChatV4(ctx, 'x', undefined)
+      check('sendToChatV4：宿主无 submit → 绝不报 submitted（降级剪贴板）',
+        result !== 'submitted' && result === (navStubbed ? 'copied' : 'none') && shell.drafts.length === 1)
+    } finally {
+      if (navStubbed) {
+        if (navDescriptor) Object.defineProperty(globalThis, 'navigator', navDescriptor)
+        else delete globalThis.navigator
+      }
+    }
+  }
+
+  // —— 挂载重试：openSession 后输入壳迟到位仍可送达 ——
+  {
+    const shell = mkShell()
+    let probes = 0
+    const sessions = withList({ scope: () => { probes += 1; return probes >= 3 ? {} : undefined } })
+    const ctx = { sessions, layout: { selectPanel() {} }, get: (name) => (name === 'conversation' ? { input: { for: () => shell } } : undefined) }
+    const result = await sendToChatV4(ctx, 'x', undefined)
+    check('sendToChatV4：输入壳挂载迟到位 → 重试后仍 submitted（6×200ms 预算）',
+      result === 'submitted' && probes >= 3 && shell.submitted === 1)
+  }
+
+  // —— create + openSession：无会话时新建并选中（0.1.7 openSession 面）——
+  {
+    const shell = mkShell()
+    const opened = []
+    const sessions = withList({
+      list: { getSnapshot: () => ({}) }, // 无任何会话 → 走 create 分支
+      scope: () => ({}),
+      create: () => Promise.resolve('new-1'),
+    })
+    const ctx = {
+      sessions,
+      workspaces: { list: { getSnapshot: () => ({ items: [], phase: 'ready' }) } },
+      uiWorkspace: { openSession: (id) => { opened.push(id) } },
+      layout: { selectPanel() {} },
+      get: (name) => (name === 'conversation' ? { input: { for: () => shell } } : undefined),
+    }
+    const result = await sendToChatV4(ctx, 'x', undefined)
+    check('sendToChatV4：工作区列表空 → create + openSession 新会话后 submitted',
+      result === 'submitted' && opened.length === 1 && opened[0] === 'new-1')
+  }
+
+  // —— openWorkspace(beforeOpen) 落点：跨工作区投递到落点会话 ——
+  {
+    const shell = mkShell()
+    const openedWs = []
+    const sessions = withList({
+      list: { getSnapshot: () => ({}) }, // 无当前会话 → 走 openWorkspace 落点分支
+      scope: (id) => (id === 'landed-1' ? {} : undefined),
+    })
+    const ctx = {
+      sessions,
+      workspaces: { list: { getSnapshot: () => ({ items: [{ workspaceId: 'w1', sessionIds: ['s-else'] }], phase: 'ready' }) } },
+      uiWorkspace: {
+        openWorkspace: (target, beforeOpen) => { openedWs.push(target); beforeOpen('landed-1'); return Promise.resolve() },
+      },
+      layout: { selectPanel() {} },
+      get: (name) => (name === 'conversation' ? { input: { for: () => shell } } : undefined),
+    }
+    const result = await sendToChatV4(ctx, 'x', 'w1')
+    check('sendToChatV4：openWorkspace(beforeOpen) 同步落点 id → 按落点递送 submitted',
+      result === 'submitted' && openedWs.length === 1 && openedWs[0] === 'w1' && shell.submitted === 1)
+  }
+
+  // —— 旧宿主面（≤0.1.6）回归：list.current + scope 直借 + 无 using ——
+  {
+    const shell = mkShell()
+    const sessions = {
+      list: { getSnapshot: () => ({ current: 'legacy-9' }) }, // 旧面：无 byId/retainedBy
+      scope: (id) => (id === 'legacy-9' ? { conversation: { input: { for: () => shell } } } : undefined), // actx.conversation 旧路径
+    }
+    const ctx = { sessions, layout: { selectPanel() {} }, get: () => undefined }
+    const result = await sendToChatV4(ctx, 'x', undefined)
+    check('sendToChatV4：旧宿主面（list.current + actx.conversation + 无 using）→ 仍 submitted',
+      result === 'submitted' && shell.submitted === 1)
   }
 }
 

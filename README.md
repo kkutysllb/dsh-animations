@@ -207,7 +207,7 @@ dsh plugin --profile web add github:kkutysllb/dsh-plugins#dsh-animations
 
 - **8 个 runtime skill**：会话中直接说「用 card-theater 演示……」即可触发（项目级同名技能可覆盖）；
 - **能力通告**：system prompt 自动注入一段能力矩阵说明，Agent 知道何时路由到哪个技能；
-- **「动效技能库」工作台**（Web GUI，dsh 0.1.5+）：左侧栏图标行新增动效技能库入口，点击进入交互面板——**工作区菜单**（跟随当前工作区或指定目标工作区）、技能卡片单选、一句话需求描述，一键「发送到对话」自动定位/新建会话并提交指令（宿主服务不可达时自动降级为复制到剪贴板）。
+- **「动效技能库」工作台**（Web GUI，dsh 0.1.5+；会话桥 v4 已适配 0.1.7 系列）：左侧栏图标行新增动效技能库入口，点击进入交互面板——**工作区菜单**（跟随当前工作区或指定目标工作区）、技能卡片单选、一句话需求描述，一键「发送到对话」自动定位/新建会话并提交指令（宿主服务不可达时自动降级为复制到剪贴板）。
 
 配置开关（cordis.yml patch 可调）：`enabled`（默认 true）、`announceToAgent`（默认 true）。
 
@@ -264,6 +264,19 @@ qilin plugin --profile qilin add github:kkutysllb/dsh-animations
   host 侧零 npm 运行时依赖，天然兼容。
 - **技能资产可选依赖**：技能资产（dynamic-archify 的 ajv 校验器等）的
   可选依赖属生成期现场安装（SKILL.md 指引），与插件运行时解析无关。
+
+### 宿主版本兼容（v1.2.2 起）
+
+| 宿主 | 支持 | 说明 |
+|---|---|---|
+| DSH / KCoder / QiLin **0.1.7 系列**（rc.1 / rc.2） | ✅ | 契约层适配：会话桥 v4（`retainedBy.mainView` 选择态 / `openWorkspace-beforeOpen` 落点 / `openSession` 选中 / `sessions.using` 持引用 / fillDraft 同口径壳解析 + 挂载重试），「发送到对话」自动提交闭环 |
+| 0.1.5 – 0.1.6 | ✅ | 双世代软降级（`list.current` / `sessions.open` / `actx.conversation` 直读） |
+| ≤ 0.1.4 | ⚠️ | 左侧栏 slot 缺席时工作台软探测跳过；8 个技能与能力通告不受影响 |
+
+manifest 声明 `peerDependencies`（`@deepseek-ai/dsh` + 4 个 client 引擎包，
+`>=0.1.0-rc.5 <0.2.0`，全部 optional）：0.1.7 插件版本兼容门按此范围
+安装期/启动期强校验（不满足需 `dsh plugin allow-version` 精确豁免）；
+optional 是 pnpm 安装面护栏（防 peer 自动安装把引擎树拉进 profile）。
 
 ### 快速上手
 
