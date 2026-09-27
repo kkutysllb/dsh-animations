@@ -502,6 +502,19 @@ the range requires the exact `dsh plugin allow-version` exemption); the
 optional flag is a pnpm install-side guard (prevents peer auto-install from
 pulling the engine tree into the profile).
 
+### Workbench UI Design Language (since v1.2.3)
+
+The motion-skills workbench panel now follows the same design language as
+KCoder's "Automated Tasks" page (TaskManagerPage) in the workspace sidebar:
+960px content column + 20px page title / 32px pill primary button /
+hairline controls (workspace dropdown + requirement input, 12px radius,
+focus outline without rings) / hairline skill-card grid (hover fill,
+selected ✓). All styles consume host dsw alias tokens — light/dark themes
+follow automatically, non-KC hosts fall back to `--sl` semantics without
+breaking; this is a pure UI-layer change — session bridge v4, slot
+registrations, the 8 skills and the capability announcement are unchanged.
+See `release/v1.2.3.md` for details.
+
 ### Compatibility
 
 | Agent / Runtime | Skill directory | Status |

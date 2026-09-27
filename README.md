@@ -207,7 +207,7 @@ dsh plugin --profile web add github:kkutysllb/dsh-plugins#dsh-animations
 
 - **8 个 runtime skill**：会话中直接说「用 card-theater 演示……」即可触发（项目级同名技能可覆盖）；
 - **能力通告**：system prompt 自动注入一段能力矩阵说明，Agent 知道何时路由到哪个技能；
-- **「动效技能库」工作台**（Web GUI，dsh 0.1.5+；会话桥 v4 已适配 0.1.7 系列）：左侧栏图标行新增动效技能库入口，点击进入交互面板——**工作区菜单**（跟随当前工作区或指定目标工作区）、技能卡片单选、一句话需求描述，一键「发送到对话」自动定位/新建会话并提交指令（宿主服务不可达时自动降级为复制到剪贴板）。
+- **「动效技能库」工作台**（Web GUI，dsh 0.1.5+；会话桥 v4 已适配 0.1.7 系列；v1.2.3 起 UI 对齐 KCoder「自动化任务」页设计语言）：左侧栏图标行新增动效技能库入口，点击进入交互面板——**工作区下拉**（跟随当前工作区或指定目标工作区）、技能卡片单选、一句话需求描述，一键「发送到对话」自动定位/新建会话并提交指令（宿主服务不可达时自动降级为复制到剪贴板）。
 
 配置开关（cordis.yml patch 可调）：`enabled`（默认 true）、`announceToAgent`（默认 true）。
 
@@ -277,6 +277,15 @@ manifest 声明 `peerDependencies`（`@deepseek-ai/dsh` + 4 个 client 引擎包
 `>=0.1.0-rc.5 <0.2.0`，全部 optional）：0.1.7 插件版本兼容门按此范围
 安装期/启动期强校验（不满足需 `dsh plugin allow-version` 精确豁免）；
 optional 是 pnpm 安装面护栏（防 peer 自动安装把引擎树拉进 profile）。
+
+### 工作台 UI 设计语言（v1.2.3 起）
+
+「动效技能库」工作台面板 UI 对齐 KCoder 工作区侧边栏「自动化任务」页
+（TaskManagerPage）同款设计语言：960px 内容列 + 20px 页标题 / 32px 胶囊主按钮 /
+发丝线控件（工作区下拉 + 需求输入，12px 圆角、focus 描边不打环）/ 发丝线技能
+卡片网格（hover 铺底、选中 ✓）。全部样式消费宿主 dsw alias token，亮暗主题
+自动跟随、非 KC 宿主有 `--sl` 保底不破相；纯 UI 层改动，会话桥 v4 / slot
+注册 / 8 个技能与能力通告全部不变。详见 `release/v1.2.3.md`。
 
 ### 快速上手
 
