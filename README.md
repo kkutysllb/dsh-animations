@@ -274,9 +274,11 @@ qilin plugin --profile qilin add github:kkutysllb/dsh-animations
 | ≤ 0.1.4 | ⚠️ | 左侧栏 slot 缺席时工作台软探测跳过；8 个技能与能力通告不受影响 |
 
 manifest 声明 `peerDependencies`（`@deepseek-ai/dsh` + 4 个 client 引擎包，
-`>=0.1.0-rc.5 <0.2.0`，全部 optional）：0.1.7 插件版本兼容门按此范围
+`>=0.1.0-rc.5 <1.0.0`，全部 optional）：0.1.7 插件版本兼容门按此范围
 安装期/启动期强校验（不满足需 `dsh plugin allow-version` 精确豁免）；
 optional 是 pnpm 安装面护栏（防 peer 自动安装把引擎树拉进 profile）。
+上界自 v1.2.4 起为 `<1.0.0`（原 `<0.2.0`）：后者对 `0.2.1-alpha.1` 求值为 false，
+会让兼容门静默禁用整个插件。
 
 ### 工作台 UI 设计语言（v1.2.3 起）
 

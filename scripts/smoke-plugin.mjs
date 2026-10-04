@@ -215,13 +215,15 @@ let clientFactory = null
     check(`${channel}.client.bundle / bundle.patch 指向不变`,
       pkg[channel]?.client?.bundle === './lib/client.js' && pkg[channel]?.bundle?.patch === './cordis.patch.yml')
   }
-  // peer 三则（0.1.7 插件版本兼容门只读 peerDependencies；optional 是安装面护栏）
-  const PEER_RANGE = '>=0.1.0-rc.5 <0.2.0'
+  // peer 三则（0.1.7+ 插件版本兼容门只读 peerDependencies；optional 是安装面护栏）
+  // 上界 <1.0.0 覆盖 0.2.x 全系：旧上界 <0.2.0 对 0.2.1-alpha.1 求值为 false，
+  // app-boot 兼容闸门会静默跳过整个 bundle
+  const PEER_RANGE = '>=0.1.0-rc.5 <1.0.0'
   const peers = pkg.peerDependencies ?? {}
   const peerNames = Object.keys(peers)
   check('peerDependencies 声明 @deepseek-ai/dsh + 4 引擎包（共 5 条）',
     peerNames.length === 5 && ['@deepseek-ai/dsh', ...FROZEN].every((p) => peerNames.includes(p)))
-  check(`peerDependencies 范围均为 ${PEER_RANGE}（覆盖 0.1.x 含 prerelease）`,
+  check(`peerDependencies 范围均为 ${PEER_RANGE}（覆盖 0.1.x–0.2.x 含 prerelease）`,
     peerNames.every((p) => peers[p] === PEER_RANGE))
   const meta = pkg.peerDependenciesMeta ?? {}
   check('peerDependenciesMeta 全部 optional（防 pnpm 自动安装把引擎树拉进 profile）',

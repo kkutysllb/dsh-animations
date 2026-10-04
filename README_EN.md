@@ -496,11 +496,14 @@ panel, and the sidebar panel follows the plugin's enable state.
 | ≤ 0.1.4 | ⚠️ | Workbench soft-probes and skips when the sidebar slots are absent; the 8 skills and the capability announcement are unaffected |
 
 The manifest declares `peerDependencies` (`@deepseek-ai/dsh` + the 4 client
-engine packages, `>=0.1.0-rc.5 <0.2.0`, all optional): the 0.1.7 plugin
+engine packages, `>=0.1.0-rc.5 <1.0.0`, all optional): the 0.1.7 plugin
 version-compatibility gate enforces this range at install and boot (outside
 the range requires the exact `dsh plugin allow-version` exemption); the
 optional flag is a pnpm install-side guard (prevents peer auto-install from
 pulling the engine tree into the profile).
+The upper bound has been `<1.0.0` since v1.2.4 (was `<0.2.0`): the old bound
+evaluates to false for `0.2.1-alpha.1`, which makes the gate silently disable
+the whole plugin.
 
 ### Workbench UI Design Language (since v1.2.3)
 
