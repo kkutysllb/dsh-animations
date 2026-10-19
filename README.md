@@ -7,7 +7,7 @@
 
 *一套用 AI 生成炫酷单文件 HTML 动画的技能集合：装进 DSH 就是标准插件，放进 Claude Code / Cursor 就是通用 Agent Skills*
 
-[![Release](https://img.shields.io/badge/Release-v1.0.0-2ea44f?style=flat-square)](release/v1.0.0.md)
+[![Release](https://img.shields.io/badge/Release-v2.0.0-2ea44f?style=flat-square)](release/v2.0.0.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](./LICENSE)
 [![DSH Plugin](https://img.shields.io/badge/DSH-plugin-7c3aed?style=flat-square)](#安装)
 [![Skills count](https://img.shields.io/badge/Skills-8-orange?style=flat-square)](#skills-一览)
@@ -27,7 +27,7 @@
 
 | 形态 | 谁在用 | 怎么装 |
 |---|---|---|
-| 🧩 **DSH 标准插件** | DSH / KCoder 用户 | [`dsh plugin add`](#安装)，激活即注册 8 个 runtime skill + Web GUI「动效技能库」工作台 |
+| 🧩 **DSH 标准插件** | DSH / KCoder 用户 | [`dsh plugin add`](#安装)，激活即注册 8 个 runtime skill，供 Agent 在会话中后台调用 |
 | 🎯 **通用 Agent Skills** | Claude Code / Cursor / Codex CLI / WorkBuddy | [`npx skills add`](#安装) 或手动复制 `skills/<name>/` |
 
 **技能矩阵**：
@@ -206,8 +206,9 @@ dsh plugin --profile web add github:kkutysllb/dsh-plugins#dsh-animations
 安装后重启 DSH 生效，你将获得：
 
 - **8 个 runtime skill**：会话中直接说「用 card-theater 演示……」即可触发（项目级同名技能可覆盖）；
-- **能力通告**：system prompt 自动注入一段能力矩阵说明，Agent 知道何时路由到哪个技能；
-- **「动效技能库」工作台**（Web GUI，dsh 0.1.5+；会话桥 v4 已适配 0.1.7 系列；v1.2.3 起 UI 对齐 KCoder「自动化任务」页设计语言）：左侧栏图标行新增动效技能库入口，点击进入交互面板——**工作区下拉**（跟随当前工作区或指定目标工作区）、技能卡片单选、一句话需求描述，一键「发送到对话」自动定位/新建会话并提交指令（宿主服务不可达时自动降级为复制到剪贴板）。
+- **能力通告**：system prompt 自动注入一段能力矩阵说明，Agent 知道何时路由到哪个技能。
+
+本插件为**纯 host 插件**：不注册任何 Web GUI UI（不占用左侧栏、不挂主面板），能力完全由 Agent 在会话中后台调用；生成物落在当前工作目录。
 
 配置开关（cordis.yml patch 可调）：`enabled`（默认 true）、`announceToAgent`（默认 true）。
 
@@ -230,11 +231,10 @@ git clone https://github.com/kkutysllb/dsh-animations.git
 
 ### QiLin（麒麟）双通道适配（v1.2.1 起）
 
-manifest 同时声明 `qilin` 与 `dsh` 两个通道的 `bundle.patch` / `client`：
+manifest 同时声明 `qilin` 与 `dsh` 两个通道的 `bundle.patch`：
 QiLin（dsh 0.1.6-alpha.2 合并后）的插件管理器只认原生键
 `qilin.bundle.patch`（缺失会报「没有声明组合包」），DSH 宿主仍读
-`dsh.*`；两通道指向同一份 `cordis.patch.yml` 与 client 交付物，
-行为完全一致。
+`dsh.*`；两通道指向同一份 `cordis.patch.yml`，行为完全一致。
 
 ### 麒麟（QiLin）引擎安装
 
@@ -246,8 +246,8 @@ qilin plugin --profile qilin add dsh-animations
 qilin plugin --profile qilin add github:kkutysllb/dsh-animations
 ```
 
-装完在 QiLin 设置 → 插件里可见、可启停；8 个动效技能注册进工作台
-技能面，侧栏面板随插件启停。
+装完在 QiLin 设置 → 插件里可见、可启停；启用后 8 个动效技能即注册进
+会话技能面，供 Agent 后台调用。
 
 #### 注意事项（QiLin）
 
@@ -265,29 +265,18 @@ qilin plugin --profile qilin add github:kkutysllb/dsh-animations
 - **技能资产可选依赖**：技能资产（dynamic-archify 的 ajv 校验器等）的
   可选依赖属生成期现场安装（SKILL.md 指引），与插件运行时解析无关。
 
-### 宿主版本兼容（v1.2.2 起）
+### 宿主版本兼容
 
-| 宿主 | 支持 | 说明 |
-|---|---|---|
-| DSH / KCoder / QiLin **0.1.7 系列**（rc.1 / rc.2） | ✅ | 契约层适配：会话桥 v4（`retainedBy.mainView` 选择态 / `openWorkspace-beforeOpen` 落点 / `openSession` 选中 / `sessions.using` 持引用 / fillDraft 同口径壳解析 + 挂载重试），「发送到对话」自动提交闭环 |
-| 0.1.5 – 0.1.6 | ✅ | 双世代软降级（`list.current` / `sessions.open` / `actx.conversation` 直读） |
-| ≤ 0.1.4 | ⚠️ | 左侧栏 slot 缺席时工作台软探测跳过；8 个技能与能力通告不受影响 |
+本插件 host 侧零 npm 运行时依赖（`inject: ['skills', 'systemPrompt']`），
+只依赖宿主提供 `skills.register()` 与 `systemPrompt.section()` 两个服务，
+对 DSH / KCoder / QiLin 0.1.x–0.2.x 全系一致可用。
 
-manifest 声明 `peerDependencies`（`@deepseek-ai/dsh` + 4 个 client 引擎包，
+manifest 声明 `peerDependencies`（`@deepseek-ai/dsh`，
 `>=0.1.0-rc.5 <1.0.0`，全部 optional）：0.1.7 插件版本兼容门按此范围
 安装期/启动期强校验（不满足需 `dsh plugin allow-version` 精确豁免）；
 optional 是 pnpm 安装面护栏（防 peer 自动安装把引擎树拉进 profile）。
 上界自 v1.2.4 起为 `<1.0.0`（原 `<0.2.0`）：后者对 `0.2.1-alpha.1` 求值为 false，
 会让兼容门静默禁用整个插件。
-
-### 工作台 UI 设计语言（v1.2.3 起）
-
-「动效技能库」工作台面板 UI 对齐 KCoder 工作区侧边栏「自动化任务」页
-（TaskManagerPage）同款设计语言：960px 内容列 + 20px 页标题 / 32px 胶囊主按钮 /
-发丝线控件（工作区下拉 + 需求输入，12px 圆角、focus 描边不打环）/ 发丝线技能
-卡片网格（hover 铺底、选中 ✓）。全部样式消费宿主 dsw alias token，亮暗主题
-自动跟随、非 KC 宿主有 `--sl` 保底不破相；纯 UI 层改动，会话桥 v4 / slot
-注册 / 8 个技能与能力通告全部不变。详见 `release/v1.2.3.md`。
 
 ### 快速上手
 
@@ -308,15 +297,13 @@ optional 是 pnpm 安装面护栏（防 peer 自动安装把引擎树拉进 prof
 
 ### 插件形态（面向 DSH 用户与开发者）
 
-本仓按 DSH 标准 bundle 规范发布（对齐 `dsh-skills-bundle` 的零构建胶水形态 + `dsh-super-ppts` 的通告/工作台模式）：
+本仓按 DSH 标准 bundle 规范发布（对齐 `dsh-skills-bundle` 的零构建胶水形态 + `dsh-super-ppts` 的通告模式）：
 
 ```text
 dsh-animations/
 ├── package.json            ← dsh bundle manifest（files 白名单 / scripts / dsh.bundle.patch）
 ├── cordis.patch.yml        ← bundle 层注册（id: dsh-animations）
 ├── entry.js                ← 胶水插件（零依赖 ESM）：注册 skills + 通告
-├── lib/
-│   └── client.js           ← Web GUI client 扩展：左侧栏「动效技能库」工作台（工作区菜单 + 技能单选 + 会话桥投递）
 ├── skills/
 │   ├── manifest.json       ← 技能注册清单（单一事实源，smoke 对账）
 │   ├── <skill>/SKILL.md    ← 技能正文（frontmatter 剥离后注册）
@@ -325,13 +312,13 @@ dsh-animations/
 │   ├── examples/           ← 案例示例 HTML（本页展示图的可复现源）
 │   └── screenshots/        ← 案例示例图
 ├── scripts/
-│   ├── smoke-plugin.mjs    ← 冒烟：清单对账 + apply 全流程 + 通告覆盖 + client 工作台断言
+│   ├── smoke-plugin.mjs    ← 冒烟：清单对账 + apply 全流程 + 通告覆盖 + 契约哨兵
 │   └── sync-to-dsh-plugins.mjs  ← 真源 → dsh-plugins 镜像同步（--check 对账）
 ├── web_animation/          ← 历史成品画廊（源仓展示物，不随插件分发）
 └── README.md
 ```
 
-**运行机制**：`cordis.patch.yml` 被 DSH 主进程物化进 profile → 激活 `entry.js` → 读取 `skills/manifest.json` 逐个 `ctx.skills.register()`（`resourceBase` 指向技能目录，正文引用的相对资产可解析）→ 向 systemPrompt 注入能力通告 section。Web 侧 `lib/client.js` 经 `__ModuleLoader__` 自注册，向左侧栏 `sidebar.panellist` 图标行与 `main` keyed 主面板挂载「动效技能库」工作台。
+**运行机制**：`cordis.patch.yml` 被 DSH 主进程物化进 profile → 激活 `entry.js` → 读取 `skills/manifest.json` 逐个 `ctx.skills.register()`（`resourceBase` 指向技能目录，正文引用的相对资产可解析）→ 向 systemPrompt 注入能力通告 section。全链无 client 交付物，Agent 在会话中据通告路由到对应 SKILL.md 生成单文件 HTML。
 
 **开发与发版**：
 

@@ -2,7 +2,7 @@
 
 # DSH Animation Skills
 
-> ⚠️ **This English README is based on v0.1 (skills collection).** The repo has been restructured into a standard DSH plugin (v1.2.0): plugin manifest, runtime-skill registration, and a sidebar motion-skills workbench (workspace picker + one-click hand-off to chat). See the Chinese `README.md` for the authoritative, up-to-date documentation; this file will be refreshed in a follow-up release.
+> ⚠️ **This English README is based on v0.1 (skills collection).** The repo has been restructured into a standard DSH plugin (v1.2.0): plugin manifest and runtime-skill registration. It is a **pure host plugin** — it registers no Web GUI UI (no sidebar entry, no main panel); the 8 skills are invoked by the agent in-session. See the Chinese `README.md` for the authoritative, up-to-date documentation; this file will be refreshed in a follow-up release.
 
 **A collection of [Agent Skills](https://support.claude.com/en/articles/12512176-what-are-skills) for generating cool HTML animations with AI · 一套用 AI 生成炫酷 HTML 动画的 Skill 集合**
 
@@ -444,12 +444,12 @@ Grab a `.zip` from the [Releases page](https://github.com/kkutysllb/KAnimation/r
 
 ### QiLin (麒麟) Dual-Channel Adaptation (since v1.2.1)
 
-The manifest declares `bundle.patch` / `client` for both the `qilin` and
+The manifest declares `bundle.patch` for both the `qilin` and
 `dsh` channels: after merging dsh 0.1.6-alpha.2, QiLin's plugin manager
 only recognizes the native key `qilin.bundle.patch` (a missing key reports
 "declares no qilin.bundle"), while the DSH host keeps reading `dsh.*`.
-Both channels point to the same `cordis.patch.yml` and client deliverables —
-behavior is fully identical.
+Both channels point to the same `cordis.patch.yml` — behavior is fully
+identical.
 
 ### Installing on the QiLin (麒麟) Engine
 
@@ -462,8 +462,9 @@ qilin plugin --profile qilin add github:kkutysllb/dsh-animations
 ```
 
 After install the plugin shows up under QiLin Settings → Plugins (enable /
-disable at will); the 8 animation skills register into the workbench skills
-panel, and the sidebar panel follows the plugin's enable state.
+disable at will); once enabled, the 8 animation skills register into the
+session skill surface and become available for the agent to invoke in the
+background.
 
 #### Notes (QiLin)
 
@@ -487,16 +488,15 @@ panel, and the sidebar panel follows the plugin's enable state.
   generation time (per SKILL.md guidance), unrelated to the plugin's
   runtime resolution.
 
-### Host Version Compatibility (since v1.2.2)
+### Host Version Compatibility
 
-| Host | Support | Notes |
-|---|---|---|
-| DSH / KCoder / QiLin **0.1.7 series** (rc.1 / rc.2) | ✅ | Contract-layer adaptation: session bridge v4 (`retainedBy.mainView` selection / `openWorkspace-beforeOpen` landing / `openSession` selection / `sessions.using` reference-holding / fillDraft-caliber shell resolution with mount retries) — "Send to chat" auto-submits again |
-| 0.1.5 – 0.1.6 | ✅ | Dual-generation soft fallback (`list.current` / `sessions.open` / `actx.conversation`) |
-| ≤ 0.1.4 | ⚠️ | Workbench soft-probes and skips when the sidebar slots are absent; the 8 skills and the capability announcement are unaffected |
+The host half has zero npm runtime dependencies (`inject: ['skills',
+'systemPrompt']`) and only needs the host to provide `skills.register()`
+and `systemPrompt.section()` — it works identically across the whole
+DSH / KCoder / QiLin 0.1.x–0.2.x line.
 
-The manifest declares `peerDependencies` (`@deepseek-ai/dsh` + the 4 client
-engine packages, `>=0.1.0-rc.5 <1.0.0`, all optional): the 0.1.7 plugin
+The manifest declares `peerDependencies` (`@deepseek-ai/dsh`,
+`>=0.1.0-rc.5 <1.0.0`, optional): the 0.1.7 plugin
 version-compatibility gate enforces this range at install and boot (outside
 the range requires the exact `dsh plugin allow-version` exemption); the
 optional flag is a pnpm install-side guard (prevents peer auto-install from
@@ -504,19 +504,6 @@ pulling the engine tree into the profile).
 The upper bound has been `<1.0.0` since v1.2.4 (was `<0.2.0`): the old bound
 evaluates to false for `0.2.1-alpha.1`, which makes the gate silently disable
 the whole plugin.
-
-### Workbench UI Design Language (since v1.2.3)
-
-The motion-skills workbench panel now follows the same design language as
-KCoder's "Automated Tasks" page (TaskManagerPage) in the workspace sidebar:
-960px content column + 20px page title / 32px pill primary button /
-hairline controls (workspace dropdown + requirement input, 12px radius,
-focus outline without rings) / hairline skill-card grid (hover fill,
-selected ✓). All styles consume host dsw alias tokens — light/dark themes
-follow automatically, non-KC hosts fall back to `--sl` semantics without
-breaking; this is a pure UI-layer change — session bridge v4, slot
-registrations, the 8 skills and the capability announcement are unchanged.
-See `release/v1.2.3.md` for details.
 
 ### Compatibility
 

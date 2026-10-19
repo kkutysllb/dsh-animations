@@ -1,18 +1,16 @@
 {
   "name": "dsh-animations",
-  "version": "1.2.4",
-  "description": "DSH 原生动效技能包：8 个 HTML 动画技能（PPT 翻页演示 / 流程图 / 网络协议可视化 / 动态架构图 / 学霸笔记 / 卡片剧场 / 视频分镜 / 手机 UI 演示），激活即注册为 runtime skill，Web GUI 左侧栏内置「动效技能库」工作台面板（技能选择 + 工作区菜单 + 一键投递会话）。",
+  "version": "2.0.0",
+  "description": "DSH 原生动效技能包：8 个 HTML 动画技能（PPT 翻页演示 / 流程图 / 网络协议可视化 / 动态架构图 / 学霸笔记 / 卡片剧场 / 视频分镜 / 手机 UI 演示），激活即注册为 runtime skill，由 Agent 在会话中后台调用。",
   "type": "module",
   "main": "entry.js",
   "exports": {
     ".": "./entry.js",
-    "./client": "./lib/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "files": [
     "entry.js",
-    "lib/client.js",
     "cordis.patch.yml",
     "skills",
     "docs",
@@ -23,54 +21,18 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
-    },
-    "client": {
-      "bundle": "./lib/client.js",
-      "inject": [
-        "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-slots",
-        "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-workspace"
-      ],
-      "platform": "web"
     }
   },
   "qilin": {
     "bundle": {
       "patch": "./cordis.patch.yml"
-    },
-    "client": {
-      "bundle": "./lib/client.js",
-      "inject": [
-        "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-slots",
-        "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-workspace"
-      ],
-      "platform": "web"
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh": ">=0.1.0-rc.5 <1.0.0",
-    "@deepseek-ai/dsh-client-locale": ">=0.1.0-rc.5 <1.0.0",
-    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.0-rc.5 <1.0.0",
-    "@deepseek-ai/dsh-client-ui-conversation": ">=0.1.0-rc.5 <1.0.0",
-    "@deepseek-ai/dsh-client-ui-workspace": ">=0.1.0-rc.5 <1.0.0"
+    "@deepseek-ai/dsh": ">=0.1.0-rc.5 <1.0.0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh": {
-      "optional": true
-    },
-    "@deepseek-ai/dsh-client-locale": {
-      "optional": true
-    },
-    "@deepseek-ai/dsh-client-ui-slots": {
-      "optional": true
-    },
-    "@deepseek-ai/dsh-client-ui-conversation": {
-      "optional": true
-    },
-    "@deepseek-ai/dsh-client-ui-workspace": {
       "optional": true
     }
   },
@@ -78,8 +40,7 @@
     "smoke": "node scripts/smoke-plugin.mjs",
     "sync:mirror": "node scripts/sync-to-dsh-plugins.mjs",
     "sync:check": "node scripts/sync-to-dsh-plugins.mjs --check",
-    "prepack": "npm run smoke",
-    "release": "node scripts/release/update-readme.mjs"
+    "prepack": "npm run smoke"
   },
   "keywords": [
     "dsh",
